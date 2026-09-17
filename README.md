@@ -14,12 +14,13 @@
 
 | App | What it does | Data source | Status |
 | --- | --- | --- | --- |
+| [**capacity-command**](apps/capacity-command) | A DP-700 operational simulator. Built for the Fabric community contest, Builder track. Runs as a static site for now; not yet on Rayfin. | Simulated, no external source | Built |
 | **wind-fingerprint** | Joins air quality measurements to wind direction so you can see where a station's pollution actually comes from. | EEA air quality | Planned |
 | **wake** | Explores maritime CO2 reporting under ETS and FuelEU, vessel by vessel. | THETIS-MRV | Planned |
 | **half-life** | Survival curves for vehicle registrations, the DAX-heavy one of the set. | RDW open vehicle registry | Planned |
 
-Nothing is built yet. The folder links appear in this table as each app lands, so an empty
-column here means an empty folder in the repo.
+The folder links appear in this table as each app lands, so an empty column here means an
+empty folder in the repo.
 
 ## Why this repo exists
 
@@ -43,12 +44,16 @@ FabricApps/
 │   │   ├── src/                frontend
 │   │   ├── package.json
 │   │   └── README.md           what it does, how to run it, what it taught me
+│   ├── capacity-command/       migrated in; static build, no rayfin/ yet
 │   ├── wake/
 │   └── half-life/
 ├── docs/
 │   ├── setup.md                one-time tenant, capacity and CLI setup
+│   ├── migrate-existing-app.md how to bring an existing project in safely
 │   ├── app-readme-template.md  the shape every app README follows
 │   └── img/                    screenshots and diagrams
+├── scripts/
+│   └── precommit-check.sh      secret, size and placeholder scan before you commit
 ├── LICENSE
 └── README.md
 ```
@@ -64,6 +69,8 @@ Conventions worth knowing before you add an app:
   instead.
 - Every app README follows [the same template](docs/app-readme-template.md), which is what keeps the
   table above honest.
+- Bringing in a project that was built somewhere else? Follow
+  [docs/migrate-existing-app.md](docs/migrate-existing-app.md) before the first commit.
 
 ## Before you start
 
@@ -110,6 +117,12 @@ eventually break the app.
   generated artefacts and workspace identifiers.
 - Datasets are not committed. Each app documents where its data comes from and ships a script to fetch it.
 - Every dataset here is public and European. Attribution and licence terms are listed in each app README.
+
+Run the scan before committing, especially the first time you bring an existing project in:
+
+```bash
+./scripts/precommit-check.sh
+```
 
 ## Source of truth
 

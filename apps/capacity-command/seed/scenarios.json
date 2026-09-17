@@ -1,0 +1,2145 @@
+{
+  "meta": {
+    "game": "Capacity Command",
+    "cert": "DP-700 (skills measured as of 20.04.2026)",
+    "company": "Nordwind Logistics (fictional)",
+    "economy": {
+      "startingCU": 100,
+      "startingSLA": 100,
+      "notes": "cuCost drains the week CU budget, slaDelta adjusts the SLA score. Negative slaDelta on wrong choices, small recovery on correct ones. followUp triggers a chained incident when that option is picked. Per-week starting CU and SLA live in campaign.json; the values here are the week 1 defaults."
+    },
+    "domains": [
+      {
+        "id": "implement-manage",
+        "label": "Implement and manage an analytics solution",
+        "weight": "30-35%"
+      },
+      {
+        "id": "ingest-transform",
+        "label": "Ingest and transform data",
+        "weight": "30-35%"
+      },
+      {
+        "id": "monitor-optimize",
+        "label": "Monitor and optimize an analytics solution",
+        "weight": "30-35%"
+      }
+    ],
+    "campaign": "Every scenario belongs to a week. Week structure (title, day count, starting CU and SLA) is configured in campaign.json. A followUp must target a scenario in the same week."
+  },
+  "scenarios": [
+    {
+      "id": "S01",
+      "week": 1,
+      "day": 1,
+      "domain": "implement-manage",
+      "objective": "Workspace and item security",
+      "title": "The contractor request",
+      "incident": "An external contractor starts today to build Power BI reports on the gold lakehouse. Security policy: no access to bronze or silver data, no ability to modify items. Your workspace contains all three layers.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Add the contractor as Viewer on the workspace",
+          "cuCost": 0,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Viewer grants read on ALL items in the workspace, including bronze and silver. Policy violated."
+        },
+        {
+          "id": "B",
+          "text": "Share only the gold lakehouse item with Read and Build permission",
+          "cuCost": 0,
+          "slaDelta": 5,
+          "correct": true,
+          "feedback": "Item-level sharing scopes access to exactly one item. Build permission enables report creation on the semantic model without workspace membership."
+        },
+        {
+          "id": "C",
+          "text": "Add the contractor as Member so they can build reports",
+          "cuCost": 0,
+          "slaDelta": -20,
+          "correct": false,
+          "feedback": "Member can edit and delete items across the workspace. Massive over-permissioning.",
+          "followUp": "S01F"
+        },
+        {
+          "id": "D",
+          "text": "Copy the gold tables into a new workspace every night with a pipeline",
+          "cuCost": 15,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Works, but burns CU on data duplication. A shortcut or item share achieves the same isolation for free."
+        }
+      ]
+    },
+    {
+      "id": "S01F",
+      "week": 1,
+      "day": 1,
+      "domain": "implement-manage",
+      "objective": "Workspace and item security",
+      "title": "Follow-up: the deleted dataflow",
+      "incident": "The contractor accidentally deleted a silver dataflow while exploring the workspace. Downstream refreshes are failing.",
+      "isFollowUp": true,
+      "options": [
+        {
+          "id": "A",
+          "text": "Restore from Git, revoke Member role, apply item-level sharing instead",
+          "cuCost": 5,
+          "slaDelta": 0,
+          "correct": true,
+          "feedback": "Git-synced workspaces let you restore deleted items from source control. Then fix the root cause: over-permissioning."
+        },
+        {
+          "id": "B",
+          "text": "Rebuild the dataflow manually and keep the Member role",
+          "cuCost": 10,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Rebuilding without source control wastes time and the root cause remains."
+        }
+      ]
+    },
+    {
+      "id": "S02",
+      "week": 1,
+      "day": 1,
+      "domain": "implement-manage",
+      "objective": "Lifecycle management: deployment pipelines",
+      "title": "The hardcoded connection",
+      "incident": "You deploy from Test to Prod via a deployment pipeline. After deployment, the prod pipeline still ingests from the TEST SQL server. Business users are seeing test data in prod reports.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Edit the connection manually in prod after every deployment",
+          "cuCost": 0,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Manual post-deployment edits are error-prone and get forgotten. Exactly what just happened."
+        },
+        {
+          "id": "B",
+          "text": "Configure deployment rules to swap data source parameters per stage",
+          "cuCost": 0,
+          "slaDelta": 5,
+          "correct": true,
+          "feedback": "Deployment rules (or parameterized connections via variable libraries) are the supported pattern for stage-specific values."
+        },
+        {
+          "id": "C",
+          "text": "Maintain separate copies of the pipeline per environment, no deployment pipeline",
+          "cuCost": 0,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Drift guaranteed. You lose the whole point of lifecycle management."
+        }
+      ]
+    },
+    {
+      "id": "S03",
+      "week": 1,
+      "day": 2,
+      "domain": "implement-manage",
+      "objective": "Lifecycle management: Git integration",
+      "title": "Two engineers, one workspace",
+      "incident": "Two engineers edited the same notebook directly in the shared dev workspace. One overwrote the other's changes. Both are now blaming Fabric.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Tell them to coordinate verbally before editing",
+          "cuCost": 0,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Process by hope. Does not scale beyond two people and fails the first busy week."
+        },
+        {
+          "id": "B",
+          "text": "Give each engineer a feature-branch workspace, merge via pull requests",
+          "cuCost": 5,
+          "slaDelta": 5,
+          "correct": true,
+          "feedback": "The Git integration pattern: isolated workspaces per branch, PR review, then merge to the main branch that syncs the shared workspace."
+        },
+        {
+          "id": "C",
+          "text": "Lock the workspace so only you can edit",
+          "cuCost": 0,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "You just became the bottleneck for every change."
+        }
+      ]
+    },
+    {
+      "id": "S04",
+      "week": 1,
+      "day": 2,
+      "domain": "implement-manage",
+      "objective": "Orchestration with parameters and dynamic expressions",
+      "title": "Twelve copies of the same pipeline",
+      "incident": "A colleague built 12 nearly identical pipelines, one per source system. Source 13 arrives next week. Each change currently requires 12 manual edits.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Build pipeline 13 the same way, refactor later",
+          "cuCost": 5,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Later never comes. Maintenance cost grows linearly with sources."
+        },
+        {
+          "id": "B",
+          "text": "One metadata-driven pipeline: ForEach over a control table, parameters and dynamic expressions per source",
+          "cuCost": 5,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Parameterized orchestration with dynamic expressions is the exam-relevant and real-world pattern. Adding a source becomes a row in a table."
+        },
+        {
+          "id": "C",
+          "text": "Move everything to one giant notebook",
+          "cuCost": 10,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Notebooks can orchestrate, but you lose pipeline-native monitoring, retries, and activity-level lineage without gaining anything here."
+        }
+      ]
+    },
+    {
+      "id": "S05",
+      "week": 1,
+      "day": 3,
+      "domain": "implement-manage",
+      "objective": "Security and governance: sensitivity and endorsement",
+      "title": "The spreadsheet leak scare",
+      "incident": "Finance data marked Confidential was exported to Excel and mailed outside the company. Compliance asks what controls exist. Currently: none.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Disable export to Excel tenant-wide",
+          "cuCost": 0,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Blocks every legitimate analyst workflow in the company. Expect an uprising."
+        },
+        {
+          "id": "B",
+          "text": "Apply sensitivity labels with protection so labels and encryption follow exported files",
+          "cuCost": 0,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Sensitivity labels persist through export, so downstream Office files inherit protection. Targeted control, minimal friction."
+        },
+        {
+          "id": "C",
+          "text": "Send a policy reminder email",
+          "cuCost": 0,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Not a technical control. Compliance will ask again after the next incident."
+        }
+      ]
+    },
+    {
+      "id": "S06",
+      "week": 1,
+      "day": 3,
+      "domain": "ingest-transform",
+      "objective": "Choosing an ingestion pattern (batch)",
+      "title": "Two hundred CSVs before coffee",
+      "incident": "A logistics partner drops ~200 small CSV files on an SFTP server every night. They must land in the bronze lakehouse by 06:00. No transformation needed at this stage. The junior engineer prefers low-code.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Dataflow Gen2 reading all files with Power Query",
+          "cuCost": 20,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Dataflow Gen2 shines at transformation, but for raw file movement it is the most CU-expensive option here."
+        },
+        {
+          "id": "B",
+          "text": "Pipeline Copy activity (or Copy job) from SFTP to lakehouse Files",
+          "cuCost": 5,
+          "slaDelta": 5,
+          "correct": true,
+          "feedback": "Plain data movement without transformation is exactly what Copy is for: cheap, fast, low-code."
+        },
+        {
+          "id": "C",
+          "text": "PySpark notebook with an SFTP library",
+          "cuCost": 10,
+          "slaDelta": 0,
+          "correct": false,
+          "feedback": "Works, but custom code plus Spark startup overhead for a task a native connector handles out of the box."
+        }
+      ]
+    },
+    {
+      "id": "S07",
+      "week": 1,
+      "day": 4,
+      "domain": "ingest-transform",
+      "objective": "Mirroring and shortcuts",
+      "title": "The Snowflake question",
+      "incident": "Sales operations runs on Snowflake. Analysts want near-real-time access in Fabric for cross-domain reporting. Nobody wants to build or maintain ETL for this.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Hourly pipeline copying changed tables into the lakehouse",
+          "cuCost": 15,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "You just signed up to maintain the ETL nobody wanted, and 'near-real-time' became 'hourly'."
+        },
+        {
+          "id": "B",
+          "text": "Mirror the Snowflake database into Fabric",
+          "cuCost": 5,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Mirroring replicates changes continuously into OneLake as Delta, queryable across Fabric with no pipelines to maintain."
+        },
+        {
+          "id": "C",
+          "text": "OneLake shortcut to Snowflake",
+          "cuCost": 0,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Shortcuts virtualize supported storage locations (ADLS, S3, GCS, Dataverse...). For a Snowflake database with continuous replication semantics, mirroring is the fit."
+        }
+      ]
+    },
+    {
+      "id": "S08",
+      "week": 1,
+      "day": 4,
+      "domain": "ingest-transform",
+      "objective": "Streaming ingestion and real-time processing",
+      "title": "Trucks that talk",
+      "incident": "5,000 trucks emit GPS and temperature events every few seconds. Operations wants dashboards with time-windowed aggregations and sub-second query latency on the last 24 hours.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Eventstream into an Eventhouse (KQL database), query with KQL",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Eventhouse is purpose-built for high-frequency telemetry with low-latency time-series queries. KQL handles windowing natively."
+        },
+        {
+          "id": "B",
+          "text": "Eventstream into a lakehouse Delta table, query with SQL endpoint",
+          "cuCost": 10,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Lands the data, but Delta plus SQL endpoint will not give sub-second latency on streaming telemetry at this frequency."
+        },
+        {
+          "id": "C",
+          "text": "Micro-batch every 5 minutes with a scheduled pipeline",
+          "cuCost": 15,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "5-minute batches fail the latency requirement outright, and frequent pipeline runs are CU-hungry.",
+          "followUp": "S08F"
+        }
+      ]
+    },
+    {
+      "id": "S08F",
+      "week": 1,
+      "day": 4,
+      "domain": "ingest-transform",
+      "objective": "Streaming ingestion and real-time processing",
+      "title": "Follow-up: operations escalates",
+      "incident": "Operations reports the cold-chain dashboard lags 5+ minutes. A refrigerated trailer failure went unnoticed and a load spoiled.",
+      "isFollowUp": true,
+      "options": [
+        {
+          "id": "A",
+          "text": "Re-architect: Eventstream to Eventhouse, add an Activator alert on temperature threshold",
+          "cuCost": 10,
+          "slaDelta": 5,
+          "correct": true,
+          "feedback": "Real-time store plus event-driven alerting closes both the latency gap and the detection gap."
+        },
+        {
+          "id": "B",
+          "text": "Shrink the batch interval to 1 minute",
+          "cuCost": 15,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "More CU, still not real-time, still no alerting."
+        }
+      ]
+    },
+    {
+      "id": "S09",
+      "week": 1,
+      "day": 5,
+      "domain": "ingest-transform",
+      "objective": "Incremental loading",
+      "title": "The nightly full load",
+      "incident": "A 400M-row order table is fully reloaded from the source ERP every night. The load window is about to be exceeded and the source DBA is complaining about extraction pressure. The table has a reliable ModifiedDate column.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Keep the full load but schedule it earlier",
+          "cuCost": 20,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Kicks the can. Volume grows, the window shrinks again, the DBA files a formal complaint."
+        },
+        {
+          "id": "B",
+          "text": "Watermark-based incremental load on ModifiedDate, merge into the target",
+          "cuCost": 5,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "A reliable modified-timestamp column is the textbook watermark case: extract only changed rows, MERGE into Delta."
+        },
+        {
+          "id": "C",
+          "text": "Enable CDC on the source database",
+          "cuCost": 10,
+          "slaDelta": 0,
+          "correct": false,
+          "feedback": "CDC is the right tool when you need deletes and intermediate changes or there is no reliable watermark. Here it adds source-side complexity the watermark avoids."
+        }
+      ]
+    },
+    {
+      "id": "S10",
+      "week": 1,
+      "day": 5,
+      "domain": "ingest-transform",
+      "objective": "Transformation engine selection",
+      "title": "SCD2 at scale",
+      "incident": "Silver layer needs deduplication and Type 2 slowly changing dimension logic on a 500M-row customer history table. The team has both Power Query and PySpark skills.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Dataflow Gen2 with Power Query merge logic",
+          "cuCost": 25,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "At 500M rows with SCD2 merge semantics, Dataflow Gen2 becomes slow and expensive. Wrong engine for the volume."
+        },
+        {
+          "id": "B",
+          "text": "PySpark notebook with Delta MERGE for SCD2",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Spark plus Delta MERGE is built for exactly this: large-volume dedup and SCD2 with distributed compute."
+        },
+        {
+          "id": "C",
+          "text": "T-SQL stored procedure in a Warehouse",
+          "cuCost": 15,
+          "slaDelta": 0,
+          "correct": false,
+          "feedback": "Viable in a warehouse-centric design, but the medallion lives in lakehouses here, and cross-item movement adds cost the notebook avoids."
+        }
+      ]
+    },
+    {
+      "id": "S11",
+      "week": 1,
+      "day": 6,
+      "domain": "monitor-optimize",
+      "objective": "Capacity monitoring and throttling",
+      "title": "Monday morning meltdown",
+      "incident": "09:00 Monday: report users get rejected queries. The capacity ran heavy background jobs all weekend. You need to diagnose before the CIO's 10:00 call.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Open the Capacity Metrics app: check utilization, smoothing, and which items are throttling",
+          "cuCost": 0,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Always diagnose first. The Capacity Metrics app shows interactive vs background consumption, smoothing effects, and the offending items."
+        },
+        {
+          "id": "B",
+          "text": "Immediately scale up the capacity SKU",
+          "cuCost": 20,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Paying your way out before diagnosing. If one runaway job is the cause, you just doubled the bill for nothing.",
+          "followUp": "S11F"
+        },
+        {
+          "id": "C",
+          "text": "Restart the capacity",
+          "cuCost": 5,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Kills running jobs indiscriminately and destroys the evidence you need for the 10:00 call."
+        }
+      ]
+    },
+    {
+      "id": "S11F",
+      "week": 1,
+      "day": 6,
+      "domain": "monitor-optimize",
+      "objective": "Capacity monitoring and throttling",
+      "title": "Follow-up: the bill arrives",
+      "incident": "Finance flags the capacity cost increase. Metrics now show one unoptimized weekend Spark job caused 70% of the load. The bigger SKU is mostly idle.",
+      "isFollowUp": true,
+      "options": [
+        {
+          "id": "A",
+          "text": "Optimize the offending job, scale the SKU back down, set a surge protection threshold",
+          "cuCost": 5,
+          "slaDelta": 5,
+          "correct": true,
+          "feedback": "Fix the root cause, right-size, and add a guardrail so background surges cannot starve interactive users again."
+        },
+        {
+          "id": "B",
+          "text": "Keep the bigger SKU as headroom",
+          "cuCost": 15,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Paying permanently for one bad job. Finance will remember."
+        }
+      ]
+    },
+    {
+      "id": "S12",
+      "week": 1,
+      "day": 6,
+      "domain": "monitor-optimize",
+      "objective": "Direct Lake performance",
+      "title": "The mysterious slowdown",
+      "incident": "A Direct Lake report was fast for months. Now visuals take seconds. Investigation shows the underlying table has accumulated tens of thousands of small parquet files, and queries fall back to DirectQuery.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Run OPTIMIZE (with V-Order) on the table and schedule regular maintenance",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Small-file proliferation breaks Direct Lake guardrails and triggers DirectQuery fallback. Compaction with V-Order restores in-memory performance; scheduled maintenance prevents recurrence."
+        },
+        {
+          "id": "B",
+          "text": "Switch the semantic model to Import mode",
+          "cuCost": 15,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Treats the symptom, adds refresh duplication and latency, and the underlying table stays unhealthy for every other consumer."
+        },
+        {
+          "id": "C",
+          "text": "Disable DirectQuery fallback",
+          "cuCost": 0,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Now queries that exceed guardrails simply fail instead of running slowly. Users go from annoyed to blocked."
+        }
+      ]
+    },
+    {
+      "id": "S13",
+      "week": 1,
+      "day": 7,
+      "domain": "monitor-optimize",
+      "objective": "Spark performance optimization",
+      "title": "The four-hour notebook",
+      "incident": "A silver transformation notebook grew from 20 minutes to 4 hours over six months. Spark UI shows massive shuffle, skewed partitions, and thousands of tiny input files from streaming ingestion.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Increase the Spark pool size",
+          "cuCost": 20,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "More executors shuffling the same skewed tiny files. Cost up, runtime barely down."
+        },
+        {
+          "id": "B",
+          "text": "Fix the data layout: compact small files, address skew, verify partitioning strategy, then right-size compute",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Layout problems are solved at the layout level. Compaction and skew handling attack the root cause; only then is scaling a fair question."
+        },
+        {
+          "id": "C",
+          "text": "Split the notebook into four notebooks running in parallel",
+          "cuCost": 15,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Four jobs now fight over the same skewed small-file mess, plus new orchestration complexity."
+        }
+      ]
+    },
+    {
+      "id": "S14",
+      "week": 1,
+      "day": 7,
+      "domain": "monitor-optimize",
+      "objective": "Error resolution in pipelines",
+      "title": "The flaky API",
+      "incident": "A nightly pipeline pulls from a partner REST API that intermittently returns 429 (rate limited). The pipeline fails hard about twice a week and someone reruns it manually each morning.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Configure retry with backoff on the activity, add failure-path notification",
+          "cuCost": 0,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "429 is a transient, retryable condition. Activity-level retry with an interval absorbs it; the failure path alerts only when retries are exhausted."
+        },
+        {
+          "id": "B",
+          "text": "Schedule the pipeline twice so the second run catches failures",
+          "cuCost": 10,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Doubles CU on good nights and still fails when both runs hit rate limits."
+        },
+        {
+          "id": "C",
+          "text": "Wrap everything in a notebook with a try/except that ignores errors",
+          "cuCost": 5,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Silently swallowing errors means silently missing data. Worst possible outcome for trust in the platform."
+        }
+      ]
+    },
+    {
+      "id": "S15",
+      "week": 1,
+      "day": 7,
+      "domain": "monitor-optimize",
+      "objective": "Monitoring and alerting",
+      "title": "The silent stream",
+      "incident": "Last week the truck eventstream silently stopped for 6 hours; nobody noticed until a business user called. Management demands: never again. You need automated detection of data not arriving.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Have an engineer check the Monitor hub every hour",
+          "cuCost": 5,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Human polling fails at night, on weekends, and during lunch. This is what event-driven alerting exists for."
+        },
+        {
+          "id": "B",
+          "text": "Activator rule detecting absence of events beyond a threshold, alerting the on-call channel",
+          "cuCost": 5,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Activator monitors the stream itself and fires on conditions including missing data, turning a 6-hour blind spot into a minutes-level alert."
+        },
+        {
+          "id": "C",
+          "text": "Daily row-count report emailed at 08:00",
+          "cuCost": 5,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Detection latency up to 24 hours. Better than nothing, far from 'never again'."
+        }
+      ]
+    },
+    {
+      "id": "W2S01",
+      "week": 2,
+      "day": 1,
+      "domain": "implement-manage",
+      "objective": "Workspace settings: Spark pools and environments",
+      "title": "The starter pool ceiling",
+      "incident": "Peak season starts Monday. The nightly transform notebook now handles six times the parcels and still runs on the workspace starter pool. Engineers report slow session starts and out-of-memory failures on the large joins.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Define a custom Spark pool with larger nodes and autoscale in the workspace settings, and attach an environment with the required libraries",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Workspace Spark settings are where you define custom pools (node size, autoscale, executor range) and a default environment. Starter pools trade sizing control for fast session start; a known heavy workload is exactly the case for a custom pool."
+        },
+        {
+          "id": "B",
+          "text": "Keep the starter pool and split the notebook into twelve smaller notebooks that run in sequence",
+          "cuCost": 15,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Twelve serial sessions cost more CU and more start-up time than one correctly sized pool, and the memory pressure just moves around."
+        },
+        {
+          "id": "C",
+          "text": "Turn on high concurrency for the workspace and change nothing else",
+          "cuCost": 0,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "High concurrency shares one session across notebooks to save start-up time. It adds no memory and no cores, so the out-of-memory failures stay.",
+          "followUp": "W2S01F"
+        },
+        {
+          "id": "D",
+          "text": "Ask finance to approve a bigger capacity SKU",
+          "cuCost": 25,
+          "slaDelta": 0,
+          "correct": false,
+          "feedback": "Buying capacity before sizing the pool is the expensive answer to a configuration question."
+        }
+      ]
+    },
+    {
+      "id": "W2S01F",
+      "week": 2,
+      "day": 1,
+      "domain": "implement-manage",
+      "objective": "Workspace settings: Spark pools and environments",
+      "title": "Follow-up: the shared session crash",
+      "incident": "With high concurrency on, one engineer left a runaway cell running and it took the shared session down. Three unrelated notebooks died with it and the peak-season loads are behind.",
+      "isFollowUp": true,
+      "options": [
+        {
+          "id": "A",
+          "text": "Move the heavy batch job onto its own custom pool and keep high concurrency for the light interactive notebooks",
+          "cuCost": 10,
+          "slaDelta": 5,
+          "correct": true,
+          "feedback": "High concurrency is right for many small interactive workloads and wrong for one heavy batch job. Isolate the job that caused it rather than removing the setting everywhere."
+        },
+        {
+          "id": "B",
+          "text": "Disable high concurrency across the workspace and restart every notebook",
+          "cuCost": 5,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Throws away a real CU saving on the interactive work instead of isolating the single job that caused the crash."
+        }
+      ]
+    },
+    {
+      "id": "W2S02",
+      "week": 2,
+      "day": 1,
+      "domain": "implement-manage",
+      "objective": "Workspace settings: domains",
+      "title": "The domain nobody owns",
+      "incident": "The tenant has grown to 40 workspaces and nobody can find anything. Governance wants logistics data discoverable and separately governed from finance, without moving items between workspaces.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Create Fabric domains, assign the logistics workspaces to a Logistics domain and delegate domain admins",
+          "cuCost": 0,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Domains group workspaces for discovery and delegated governance. Assignment is metadata, so nothing moves, and domain admins get their own settings and endorsement rules."
+        },
+        {
+          "id": "B",
+          "text": "Rename every workspace with a \"LOG - \" prefix",
+          "cuCost": 0,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "A naming convention is not governance. No delegated administration, no filtered discovery in the OneLake catalog."
+        },
+        {
+          "id": "C",
+          "text": "Merge all logistics workspaces into one large workspace",
+          "cuCost": 20,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "One workspace destroys the access boundary between teams and makes deployment pipelines unusable."
+        },
+        {
+          "id": "D",
+          "text": "Stand up a separate tenant for logistics",
+          "cuCost": 25,
+          "slaDelta": -20,
+          "correct": false,
+          "feedback": "A second tenant duplicates capacity, identity and licensing to solve a discovery problem."
+        }
+      ]
+    },
+    {
+      "id": "W2S03",
+      "week": 2,
+      "day": 2,
+      "domain": "implement-manage",
+      "objective": "Lifecycle management: database projects",
+      "title": "Version control for the warehouse",
+      "incident": "The gold warehouse schema is changed by hand in production. Last week a column was dropped, a report broke, and nobody could say who did it or when. You need warehouse DDL under source control with a repeatable deploy.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Export the warehouse as a SQL database project, commit it to Git, and deploy schema changes through the project",
+          "cuCost": 5,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Database projects capture warehouse DDL as code that can be diffed, reviewed and deployed. This is the supported lifecycle path for warehouse schema, alongside Git integration for the workspace items."
+        },
+        {
+          "id": "B",
+          "text": "Take a nightly backup and restore it whenever something breaks",
+          "cuCost": 15,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Backups recover data, not intent. You still cannot review a schema change before it lands."
+        },
+        {
+          "id": "C",
+          "text": "Revoke write access from everyone except yourself",
+          "cuCost": 0,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Now you are the bottleneck and the changes are still untracked."
+        },
+        {
+          "id": "D",
+          "text": "Write a stored procedure that logs DDL changes to an audit table",
+          "cuCost": 10,
+          "slaDelta": 0,
+          "correct": false,
+          "feedback": "An audit trail after the fact. It tells you what broke; it does not let you review or roll back a change."
+        }
+      ]
+    },
+    {
+      "id": "W2S04",
+      "week": 2,
+      "day": 2,
+      "domain": "implement-manage",
+      "objective": "Security and governance: row and column level security",
+      "title": "Three teams, one orders table",
+      "incident": "The gold orders table has to serve three audiences. Depot managers see only their own depot rows. Analysts see all rows but must not see the customer email column. Support agents need the email, but only the last four characters.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Apply row-level security for the depot filter, column-level security to deny the email column to analysts, and dynamic data masking for support",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Three different requirements, three different features. RLS filters rows with a predicate, CLS denies a column outright, and dynamic data masking rewrites the value at query time for unprivileged users."
+        },
+        {
+          "id": "B",
+          "text": "Build three views, one per audience, and grant each team its own view",
+          "cuCost": 10,
+          "slaDelta": 0,
+          "correct": false,
+          "feedback": "Views hold until someone reaches the base table, and the depot filter still needs a per-user predicate. More objects to maintain for a weaker guarantee."
+        },
+        {
+          "id": "C",
+          "text": "Copy the table three times, one per audience",
+          "cuCost": 20,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Three copies of a fact table burn storage and CU, and they drift apart within a week.",
+          "followUp": "W2S04F"
+        },
+        {
+          "id": "D",
+          "text": "Give every team full read access and circulate a policy document telling them what not to look at",
+          "cuCost": 0,
+          "slaDelta": -20,
+          "correct": false,
+          "feedback": "That is not access control, that is a hope."
+        }
+      ]
+    },
+    {
+      "id": "W2S04F",
+      "week": 2,
+      "day": 2,
+      "domain": "implement-manage",
+      "objective": "Security and governance: row and column level security",
+      "title": "Follow-up: the copies disagree",
+      "incident": "Two weeks in, the three copies of the orders table report three different revenue totals. The Monday leadership meeting turned into an argument about whose number is right.",
+      "isFollowUp": true,
+      "options": [
+        {
+          "id": "A",
+          "text": "Collapse back to one table and enforce row-level security, column-level security and masking on it",
+          "cuCost": 15,
+          "slaDelta": 5,
+          "correct": true,
+          "feedback": "One table, one truth, security applied at query time. That is the entire point of row and column level security."
+        },
+        {
+          "id": "B",
+          "text": "Add a reconciliation pipeline that compares the three copies nightly and alerts on drift",
+          "cuCost": 20,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Building monitoring for a problem you could delete instead. The copies should not exist."
+        }
+      ]
+    },
+    {
+      "id": "W2S05",
+      "week": 2,
+      "day": 3,
+      "domain": "implement-manage",
+      "objective": "Orchestration: schedules and event-based triggers",
+      "title": "The file that arrives whenever it wants",
+      "incident": "A partner drops a manifest file into the landing lakehouse folder at some point between 02:00 and 07:00. Your pipeline runs on a 06:00 schedule, so roughly half the time it reprocesses yesterday.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Replace the schedule with an event-based trigger on OneLake file creation for that folder",
+          "cuCost": 5,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Event-based triggers fire on OneLake item events, so the pipeline runs when the file lands rather than when the clock says it might have. No polling, no CU spent waiting."
+        },
+        {
+          "id": "B",
+          "text": "Run the pipeline every fifteen minutes between 02:00 and 07:00 and exit early when there is no new file",
+          "cuCost": 20,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Twenty polling runs a night, most of them doing nothing, all of them costing CU. This is exactly what event triggers exist to avoid."
+        },
+        {
+          "id": "C",
+          "text": "Move the schedule to 07:30 to be safe",
+          "cuCost": 0,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Later is not the same as reliable, and it pushes the whole downstream chain back ninety minutes."
+        },
+        {
+          "id": "D",
+          "text": "Ask the partner to commit to a fixed delivery time",
+          "cuCost": 0,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Making your reliability depend on a third party keeping to a schedule is not a platform design."
+        }
+      ]
+    },
+    {
+      "id": "W2S06",
+      "week": 2,
+      "day": 3,
+      "domain": "ingest-transform",
+      "objective": "Handling duplicate data",
+      "title": "Forty million duplicate scans",
+      "incident": "Every parcel scanner retries on network failure, so bronze now holds the same scan event up to five times with identical scan ids and event timestamps. Silver row counts have stopped meaning anything.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Deduplicate on the natural key with a window function keeping the latest ingestion timestamp, then MERGE into silver",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "ROW_NUMBER over the natural key ordered by ingestion time picks one winner deterministically, and MERGE keeps the silver load idempotent when the same batch is reprocessed."
+        },
+        {
+          "id": "B",
+          "text": "Add DISTINCT to the silver query",
+          "cuCost": 5,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "DISTINCT only removes rows identical in every column. Retries that differ by ingestion timestamp or source file survive it."
+        },
+        {
+          "id": "C",
+          "text": "Ask the device team to stop retrying",
+          "cuCost": 0,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Retries are how the scanners survive a flaky depot network. Duplicates are yours to handle at ingest, not theirs to stop creating."
+        },
+        {
+          "id": "D",
+          "text": "Delete bronze after each silver load so the duplicates cannot come back",
+          "cuCost": 5,
+          "slaDelta": -20,
+          "correct": false,
+          "feedback": "Deleting the raw layer removes your ability to reprocess and does nothing about the duplicates already in silver."
+        }
+      ]
+    },
+    {
+      "id": "W2S07",
+      "week": 2,
+      "day": 4,
+      "domain": "ingest-transform",
+      "objective": "Handling late-arriving data",
+      "title": "Parcels that arrive yesterday",
+      "incident": "Handheld scanners sync when they find wifi, sometimes two days late. Your incremental load filters on scan timestamp greater than the last watermark, so those scans are silently dropped and daily volumes never reconcile.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Watermark on ingestion time rather than event time, and reprocess a rolling three-day window into the affected partitions",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Event time says when it happened, ingestion time says when you could first have seen it. Watermarking on ingestion time plus a bounded reprocessing window catches late arrivals without a full reload."
+        },
+        {
+          "id": "B",
+          "text": "Widen the watermark to reload everything from the last thirty days on every run",
+          "cuCost": 25,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Correct results at six times the CU. A three-day window covers the observed lateness; thirty days is a full reload in disguise."
+        },
+        {
+          "id": "C",
+          "text": "Reject scans older than the watermark and log them to an error table",
+          "cuCost": 5,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "You have built a permanent record of data you chose to lose. The daily volumes still do not reconcile."
+        },
+        {
+          "id": "D",
+          "text": "Switch back to a full reload every night",
+          "cuCost": 30,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Solves lateness by abandoning incremental loading, and the load window was already the problem."
+        }
+      ]
+    },
+    {
+      "id": "W2S08",
+      "week": 2,
+      "day": 4,
+      "domain": "ingest-transform",
+      "objective": "Handling missing and late-arriving dimension data",
+      "title": "The customer who does not exist yet",
+      "incident": "The order fact load fails nightly on the customer key lookup. New customers are created in the source CRM after the first order is placed, so the fact rows reference keys the dimension has never seen.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Insert an inferred member row for the unknown key and let the next dimension load fill in its attributes",
+          "cuCost": 5,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "The inferred member pattern for late-arriving dimensions: create a placeholder carrying the business key, point the fact at it, and let the dimension load complete it later. The fact never fails and never loses a row."
+        },
+        {
+          "id": "B",
+          "text": "Quarantine the failing rows and retry them the following night",
+          "cuCost": 10,
+          "slaDelta": 0,
+          "correct": false,
+          "feedback": "Workable, but revenue is under-reported for a day and quarantine tables grow into a second system nobody owns."
+        },
+        {
+          "id": "C",
+          "text": "Point the orphaned orders at a single \"Unknown customer\" row",
+          "cuCost": 5,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "The order is never reattached when the real customer appears, so customer-level analysis stays permanently wrong."
+        },
+        {
+          "id": "D",
+          "text": "Drop the foreign key constraint",
+          "cuCost": 0,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "The load stops failing and the model stops meaning anything."
+        }
+      ]
+    },
+    {
+      "id": "W2S09",
+      "week": 2,
+      "day": 5,
+      "domain": "ingest-transform",
+      "objective": "Loading a dimensional model: SCD type 1 and type 2",
+      "title": "The depot that moved",
+      "incident": "Depot 14 relocated from Hamburg to Bremen. Finance needs last quarter shipments to still report as Hamburg. The same dimension also holds a phone number that has just been corrected after being wrong for years.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Track the city as SCD type 2 with validity dates and a current flag, and overwrite the phone number as type 1",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "The two attributes have different requirements. History matters for the city, so type 2 closes the old row and adds a new one. The phone number was simply wrong, so type 1 overwrites it and there is no history worth keeping."
+        },
+        {
+          "id": "B",
+          "text": "Apply type 2 to the whole dimension so nothing is ever lost",
+          "cuCost": 15,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "A new row every time a typo is fixed. The dimension grows for changes nobody will ever query.",
+          "followUp": "W2S09F"
+        },
+        {
+          "id": "C",
+          "text": "Apply type 1 to the whole dimension, it is simpler",
+          "cuCost": 5,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Last quarter shipments now report Bremen. The restated numbers will not match anything finance has published."
+        },
+        {
+          "id": "D",
+          "text": "Keep a separate history table and join it when someone asks",
+          "cuCost": 15,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Rebuilding SCD type 2 by hand, badly, next to a dimension that could do it properly."
+        }
+      ]
+    },
+    {
+      "id": "W2S09F",
+      "week": 2,
+      "day": 5,
+      "domain": "ingest-transform",
+      "objective": "Loading a dimensional model: SCD type 1 and type 2",
+      "title": "Follow-up: the dimension that ate the model",
+      "incident": "Six weeks of type 2 on every column has turned a 400 row depot dimension into 90,000 rows. Direct Lake queries that join it have slowed noticeably and the semantic model refresh keeps climbing.",
+      "isFollowUp": true,
+      "options": [
+        {
+          "id": "A",
+          "text": "Rebuild the dimension with type 2 on the attributes that need history and type 1 on the rest",
+          "cuCost": 15,
+          "slaDelta": 5,
+          "correct": true,
+          "feedback": "Type 2 is a per-attribute decision, not a per-table one. Restricting it to attributes with analytical meaning brings the row count straight back down."
+        },
+        {
+          "id": "B",
+          "text": "Filter the semantic model so it only loads current rows",
+          "cuCost": 5,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "The historical rows still sit in the table and are still scanned by the load. You have discarded the history you paid to keep and kept the cost."
+        }
+      ]
+    },
+    {
+      "id": "W2S10",
+      "week": 2,
+      "day": 5,
+      "domain": "ingest-transform",
+      "objective": "Streaming: windowing functions",
+      "title": "Parcels per five minutes",
+      "incident": "Operations wants a live count of parcels scanned per depot in five-minute buckets, and alongside it a rolling one-hour average that updates every five minutes, both from the eventstream.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Use a tumbling window for the five-minute counts and a one-hour hopping window with a five-minute hop for the rolling average",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Tumbling windows are fixed and non-overlapping, so each event lands in exactly one bucket. Hopping windows overlap, and a one-hour window hopping every five minutes is precisely a rolling hourly average."
+        },
+        {
+          "id": "B",
+          "text": "Use a sliding window for both",
+          "cuCost": 10,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Sliding windows emit whenever an event enters or leaves the window, not on a fixed cadence. Correct arithmetic, an output rate nobody asked for."
+        },
+        {
+          "id": "C",
+          "text": "Use a session window with a five-minute gap",
+          "cuCost": 10,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Session windows group bursts of activity separated by idle gaps. A quiet depot would emit one window covering half the night."
+        },
+        {
+          "id": "D",
+          "text": "Land the raw events in a lakehouse and let the report aggregate on refresh",
+          "cuCost": 15,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "That is batch reporting with extra steps. Operations asked for live."
+        }
+      ]
+    },
+    {
+      "id": "W2S11",
+      "week": 2,
+      "day": 6,
+      "domain": "monitor-optimize",
+      "objective": "Optimizing a lakehouse table",
+      "title": "A million tiny files",
+      "incident": "The scan events Delta table is written every two minutes by a streaming job. It now holds 1.2 million files averaging 40 KB. Reads have gone from seconds to minutes and the Direct Lake model keeps falling back to DirectQuery.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Schedule OPTIMIZE with V-Order on the table, then VACUUM to retire the superseded files",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "OPTIMIZE compacts small files into large ones and V-Order writes them in the layout the Direct Lake engine reads best. VACUUM then removes the old files so storage and file listing stop growing."
+        },
+        {
+          "id": "B",
+          "text": "Rewrite the whole table with a full overwrite every day",
+          "cuCost": 25,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Achieves compaction by rewriting every byte daily, and breaks any streaming reader following the table."
+        },
+        {
+          "id": "C",
+          "text": "Raise the streaming trigger interval to one hour",
+          "cuCost": 5,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Fewer and larger files, at the cost of a one-hour latency on data operations needs live. It also does nothing about the 1.2 million files already written."
+        },
+        {
+          "id": "D",
+          "text": "Move the table into a warehouse instead of a lakehouse",
+          "cuCost": 20,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Changing engine to avoid running a maintenance command. The small-file problem comes from the write pattern, not the storage choice."
+        }
+      ]
+    },
+    {
+      "id": "W2S12",
+      "week": 2,
+      "day": 6,
+      "domain": "monitor-optimize",
+      "objective": "Optimizing a data warehouse",
+      "title": "The warehouse that forgot",
+      "incident": "A gold warehouse query takes 40 seconds on its first run and 2 seconds after that. It is slow again after every nightly load, and the peak-season dashboards hit it at 08:00 sharp.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Create and maintain statistics on the join and filter columns, and warm the cache with a query after the load",
+          "cuCost": 5,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "The first run pays for statistics and a cold cache. Maintained statistics give the optimizer a plan without sampling at query time, and a post-load warm-up moves the remaining cost off the user 08:00."
+        },
+        {
+          "id": "B",
+          "text": "Schedule the dashboards to refresh at 07:00 so users never hit the cold path",
+          "cuCost": 10,
+          "slaDelta": 0,
+          "correct": false,
+          "feedback": "Hides it for the dashboards and leaves every ad-hoc query on the slow path."
+        },
+        {
+          "id": "C",
+          "text": "Add an index on every column of the fact table",
+          "cuCost": 20,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Fabric Warehouse does not work that way. There are no user-defined indexes to create; the engine relies on statistics and its own data layout."
+        },
+        {
+          "id": "D",
+          "text": "Materialize the query result into a table after each load",
+          "cuCost": 15,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Fixes one query, leaves the warehouse cold for everything else, and adds another object to keep in sync."
+        }
+      ]
+    },
+    {
+      "id": "W2S13",
+      "week": 2,
+      "day": 6,
+      "domain": "monitor-optimize",
+      "objective": "Optimizing eventstreams and eventhouses",
+      "title": "The stream falls behind",
+      "incident": "Peak volumes tripled the scan event rate. The eventstream input lag grows by minutes every hour and the eventhouse ingestion latency alert has been firing since 04:00.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Read the eventstream metrics to locate the bottleneck, then scale ingestion and tune the eventhouse batching policy toward throughput",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Read the metrics before changing anything. Growing input lag with a healthy downstream usually means ingestion throughput, and the eventhouse batching policy trades latency for throughput for exactly this case."
+        },
+        {
+          "id": "B",
+          "text": "Restart the eventstream",
+          "cuCost": 5,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Clears the lag counter, not the cause. It returns within the hour and you have thrown away the diagnostic state.",
+          "followUp": "W2S13F"
+        },
+        {
+          "id": "C",
+          "text": "Drop the eventhouse retention policy to free up space",
+          "cuCost": 5,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Retention controls how long data is kept, not how fast it arrives. You have deleted history and fixed nothing."
+        },
+        {
+          "id": "D",
+          "text": "Add a second eventstream reading the same source",
+          "cuCost": 20,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Two consumers of one source doubles the CU and usually duplicates the data downstream."
+        }
+      ]
+    },
+    {
+      "id": "W2S13F",
+      "week": 2,
+      "day": 6,
+      "domain": "monitor-optimize",
+      "objective": "Optimizing eventstreams and eventhouses",
+      "title": "Follow-up: the same alert at 02:00",
+      "incident": "The restart bought four hours. The alert fired again overnight and this time the eventhouse dropped events when the ingestion buffer filled. Operations has lost two hours of scans.",
+      "isFollowUp": true,
+      "options": [
+        {
+          "id": "A",
+          "text": "Size ingestion for the peak rate properly, then backfill the missing window from the bronze landing table",
+          "cuCost": 15,
+          "slaDelta": 5,
+          "correct": true,
+          "feedback": "Two jobs: stop the loss by sizing ingestion for peak, then recover the gap from the durable copy. This is why raw events land in bronze before the stream."
+        },
+        {
+          "id": "B",
+          "text": "Restart it again and schedule an automatic restart every four hours",
+          "cuCost": 10,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Automating the workaround. Events keep dropping and now nobody looks at the alert."
+        }
+      ]
+    },
+    {
+      "id": "W2S14",
+      "week": 2,
+      "day": 7,
+      "domain": "monitor-optimize",
+      "objective": "Identifying and resolving dataflow errors",
+      "title": "The dataflow that failed at three percent",
+      "incident": "The Dataflow Gen2 loading partner reference data failed overnight with \"The column DeliveryWindow of the table wasn't found\". The partner renamed a column in their export. Twelve downstream items are stale.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Open the refresh history to find the failing step, make the dataflow tolerate the rename, and reload",
+          "cuCost": 5,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Dataflow refresh history points at the exact step and error message. Fixing the mapping and adding a column-existence check stops the next rename from breaking the load the same way."
+        },
+        {
+          "id": "B",
+          "text": "Re-run the dataflow",
+          "cuCost": 5,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "The file has not changed. It fails identically and you have spent CU proving it."
+        },
+        {
+          "id": "C",
+          "text": "Disable staging to bypass the schema check",
+          "cuCost": 5,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Staging controls where intermediate results land, not schema validation. This changes performance and not the error."
+        },
+        {
+          "id": "D",
+          "text": "Ask the partner to resend the file with the old column name",
+          "cuCost": 0,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Reasonable as a stopgap, useless as a design. The next rename breaks it again."
+        }
+      ]
+    },
+    {
+      "id": "W2S15",
+      "week": 2,
+      "day": 7,
+      "domain": "monitor-optimize",
+      "objective": "Monitoring Fabric items",
+      "title": "Who is watching what",
+      "incident": "Three people ask you three questions in ten minutes. Did last night pipeline run? Is the capacity throttled? Why is the semantic model showing yesterday data? You need one fast answer each.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Monitor hub for the pipeline run, the Capacity Metrics app for throttling, and the semantic model refresh history for staleness",
+          "cuCost": 0,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Three questions, three purpose-built surfaces. Monitor hub is the cross-item run history, the Capacity Metrics app shows CU consumption and throttling over time, and refresh history is per item."
+        },
+        {
+          "id": "B",
+          "text": "Query the SQL analytics endpoint to see whether the tables have new rows",
+          "cuCost": 5,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Tells you data is missing. It does not tell you which of the three layers failed, or why."
+        },
+        {
+          "id": "C",
+          "text": "Build a custom monitoring pipeline that writes run status to a table",
+          "cuCost": 25,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Rebuilding the monitor hub with your own CU. Worth it for a bespoke SLA report, not for three questions the platform already answers."
+        },
+        {
+          "id": "D",
+          "text": "Check the Fabric service health page",
+          "cuCost": 0,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "That covers Microsoft-side outages. None of these three questions is an outage."
+        }
+      ]
+    },
+    {
+      "id": "W3S01",
+      "week": 3,
+      "day": 1,
+      "domain": "implement-manage",
+      "objective": "Workspace settings: data workflows",
+      "title": "The inherited Airflow DAGs",
+      "incident": "The acquired Belgian carrier orchestrates 60 jobs with Apache Airflow DAGs their own team wrote. Leadership wants everything on Fabric by quarter end, and the Belgian engineers are threatening to leave if that means rewriting all of it as pipelines.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Enable data workflows on the workspace, run the existing DAGs there, and migrate selectively over time",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Fabric data workflows run Apache Airflow as a managed item, so proven DAGs move across without a rewrite. Migration to native pipelines then becomes a per-job decision instead of a condition of the merger."
+        },
+        {
+          "id": "B",
+          "text": "Rewrite all 60 DAGs as Fabric pipelines before quarter end",
+          "cuCost": 30,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Sixty rewrites against a deadline, with the only people who understand them on their way out the door."
+        },
+        {
+          "id": "C",
+          "text": "Leave Airflow running on the Belgian team own VMs outside Fabric",
+          "cuCost": 15,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Two orchestrators, two monitoring stacks and no lineage across the boundary. That is the merger problem, not the solution to it."
+        },
+        {
+          "id": "D",
+          "text": "Trigger the Airflow DAGs from Fabric pipelines with a web activity",
+          "cuCost": 15,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Glue that hides the dependency. A failed DAG now shows as a successful pipeline in the monitor hub."
+        }
+      ]
+    },
+    {
+      "id": "W3S02",
+      "week": 3,
+      "day": 1,
+      "domain": "implement-manage",
+      "objective": "Lifecycle management: Git branching strategy",
+      "title": "Two teams, one main branch",
+      "incident": "Belgian and Nordwind engineers are now committing to the same workspace, connected to main. Yesterday a half-finished Belgian notebook was picked up by the deployment pipeline and shipped to test.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Give each team its own workspace branched out from main, and merge back through pull requests",
+          "cuCost": 5,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Branching out to a new workspace gives each team an isolated workspace bound to its own branch. Main stays deployable and review happens in the pull request rather than in production."
+        },
+        {
+          "id": "B",
+          "text": "Agree that nobody commits until their work is finished",
+          "cuCost": 0,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "A process agreement instead of an isolation boundary. It holds until the first busy Friday."
+        },
+        {
+          "id": "C",
+          "text": "Put the two teams in two workspaces connected to two separate repositories",
+          "cuCost": 10,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Isolation with no merge path. The two codebases drift and there is no single main to deploy from."
+        },
+        {
+          "id": "D",
+          "text": "Disconnect Git and go back to manual deployment",
+          "cuCost": 5,
+          "slaDelta": -20,
+          "correct": false,
+          "feedback": "Solving a branching problem by removing source control."
+        }
+      ]
+    },
+    {
+      "id": "W3S03",
+      "week": 3,
+      "day": 2,
+      "domain": "implement-manage",
+      "objective": "Security and governance: OneLake data access roles",
+      "title": "The auditors want one folder",
+      "incident": "External auditors need read access to a single folder of raw settlement files in the bronze lakehouse and nothing else. The same lakehouse holds HR extracts in a sibling folder.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Create a OneLake data access role scoped to that folder and assign the auditors to it",
+          "cuCost": 0,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "OneLake data access roles apply folder-level permissions inside a lakehouse, so a reader can be granted one folder and denied its siblings. It is the only mechanism that reaches this granularity without moving data."
+        },
+        {
+          "id": "B",
+          "text": "Share the lakehouse item with read permission",
+          "cuCost": 0,
+          "slaDelta": -20,
+          "correct": false,
+          "feedback": "Item sharing is all or nothing for the lakehouse files. The auditors just received the HR extracts."
+        },
+        {
+          "id": "C",
+          "text": "Copy the settlement folder into a new lakehouse for the auditors",
+          "cuCost": 15,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "It works, and now you maintain a copy, a sync job and a second thing to secure, for a permission the platform can express directly."
+        },
+        {
+          "id": "D",
+          "text": "Give the auditors the SQL analytics endpoint with a view over the settlement tables",
+          "cuCost": 5,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Fine for tabular access, but the auditors asked for the raw files and the endpoint does not expose them."
+        }
+      ]
+    },
+    {
+      "id": "W3S04",
+      "week": 3,
+      "day": 2,
+      "domain": "implement-manage",
+      "objective": "Security and governance: object-level security",
+      "title": "The measure they must not see",
+      "incident": "The merged finance semantic model contains a Margin measure and a CostPrice column that the Belgian sales team must not see at all. Not blanked, not zeroed: they should not know the fields exist.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Apply object-level security to hide the measure and the column from that role in the semantic model",
+          "cuCost": 5,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Object-level security removes the object from the metadata for that role, so it is absent from the field list and from any query. Row-level security filters rows and column-level security denies access, but neither hides the existence of an object."
+        },
+        {
+          "id": "B",
+          "text": "Use row-level security to filter out the margin rows",
+          "cuCost": 5,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "RLS filters rows, and a measure is not a row. Margin would still be listed and would still evaluate over whatever rows remain."
+        },
+        {
+          "id": "C",
+          "text": "Remove the measure from the model and build a second model for finance",
+          "cuCost": 15,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Two models to keep in sync so that one role cannot see one measure. Object-level security exists precisely so you do not do this."
+        },
+        {
+          "id": "D",
+          "text": "Hide the field in the report",
+          "cuCost": 0,
+          "slaDelta": -20,
+          "correct": false,
+          "feedback": "Hidden in the report, fully available to anyone who connects to the model from Excel."
+        }
+      ]
+    },
+    {
+      "id": "W3S05",
+      "week": 3,
+      "day": 3,
+      "domain": "implement-manage",
+      "objective": "Orchestration patterns: dependencies and retries",
+      "title": "The chain that ran anyway",
+      "incident": "The merger load chain is ingest, then transform, then refresh the semantic model. Last night ingest failed on a transient gateway timeout, transform ran anyway on stale data, and finance opened a fully refreshed model full of wrong numbers.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Wire the activity dependencies on success only and add a retry policy to the ingest activity",
+          "cuCost": 5,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Pipeline activity dependencies are per outcome. On completion runs regardless of result, which is what happened here; on success is what this chain needs. A retry policy absorbs the transient gateway timeout without waking anyone up."
+        },
+        {
+          "id": "B",
+          "text": "Add a validation step in transform that checks the row count and exits when it looks stale",
+          "cuCost": 10,
+          "slaDelta": 0,
+          "correct": false,
+          "feedback": "A useful guard, but it is compensating for a dependency that is wired wrong one activity earlier.",
+          "followUp": "W3S05F"
+        },
+        {
+          "id": "C",
+          "text": "Split the chain into three separately scheduled pipelines with time gaps between them",
+          "cuCost": 15,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Replaces a dependency with a guess about duration. Under peak load the gap is too short and you are back here."
+        },
+        {
+          "id": "D",
+          "text": "Refresh the semantic model by hand every morning after checking the logs",
+          "cuCost": 10,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "A person as the dependency mechanism, every day, forever."
+        }
+      ]
+    },
+    {
+      "id": "W3S05F",
+      "week": 3,
+      "day": 3,
+      "domain": "implement-manage",
+      "objective": "Orchestration patterns: dependencies and retries",
+      "title": "Follow-up: the guard that guarded nothing",
+      "incident": "The row-count check passed. Ingest failed after loading 90 percent of the rows, so the count looked plausible, transform ran, the model refreshed, and finance closed the month on incomplete data.",
+      "isFollowUp": true,
+      "options": [
+        {
+          "id": "A",
+          "text": "Fix the dependency to on success, and keep the row-count check as a secondary guard",
+          "cuCost": 10,
+          "slaDelta": 5,
+          "correct": true,
+          "feedback": "Correctness comes from the dependency, not from the heuristic. Keep the check, but as a second line of defence rather than the first."
+        },
+        {
+          "id": "B",
+          "text": "Tighten the row-count threshold until a 90 percent load fails it",
+          "cuCost": 5,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Tuning a heuristic to catch one specific partial failure. The next one lands at 97 percent."
+        }
+      ]
+    },
+    {
+      "id": "W3S06",
+      "week": 3,
+      "day": 3,
+      "domain": "ingest-transform",
+      "objective": "Metadata-driven ingestion",
+      "title": "The merger two hundred tables",
+      "incident": "The Belgian SQL Server holds 214 tables that have to land in bronze. They differ in schema, watermark column and load frequency, and the list will keep changing as the merger progresses.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Build one parameterized pipeline driven by a control table of table names, watermarks and frequencies, invoked in a ForEach",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Metadata-driven ingestion: one pipeline, one control table, one row per source. Adding a table becomes an insert instead of a deployment, which is what you need when the list keeps moving."
+        },
+        {
+          "id": "B",
+          "text": "Generate 214 pipelines with a script",
+          "cuCost": 20,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Generated sprawl. Every change to the pattern means regenerating and redeploying 214 items."
+        },
+        {
+          "id": "C",
+          "text": "Use a single copy activity with a wildcard across all tables",
+          "cuCost": 10,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "The tables differ in schema and watermark column. A wildcard copy cannot express per-table incremental logic."
+        },
+        {
+          "id": "D",
+          "text": "Mirror the SQL Server database into Fabric and skip the pipelines",
+          "cuCost": 15,
+          "slaDelta": 0,
+          "correct": false,
+          "feedback": "A strong option for replication and worth considering, but it lands a mirror of the source schema rather than a curated bronze contract, and the per-table load frequency requirement disappears."
+        }
+      ]
+    },
+    {
+      "id": "W3S07",
+      "week": 3,
+      "day": 4,
+      "domain": "ingest-transform",
+      "objective": "Choosing a streaming engine",
+      "title": "Two ways to read the same stream",
+      "incident": "The Belgian fleet publishes GPS positions to an event hub at 50,000 events per second. Operations needs a five-second-latency live view, and analytics needs the same data enriched with a join to a 40 million row route dimension.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Use an eventstream into an eventhouse for the live view, and Spark structured streaming for the enrichment join",
+          "cuCost": 15,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Different requirements, different engines. Eventstream into an eventhouse is built for high-throughput ingest and sub-second query on recent data; a wide join against a large dimension is a Spark job. Neither engine is wrong, and each is wrong for one half."
+        },
+        {
+          "id": "B",
+          "text": "Do both in Spark structured streaming",
+          "cuCost": 20,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Spark can do it, but a sub-five-second micro-batch trigger at this rate keeps a cluster hot around the clock for the live view."
+        },
+        {
+          "id": "C",
+          "text": "Do both in the eventstream with a reference data lookup",
+          "cuCost": 15,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Eventstream lookups are meant for small reference sets. A 40 million row dimension is not one."
+        },
+        {
+          "id": "D",
+          "text": "Land everything in a lakehouse and run a query every five seconds",
+          "cuCost": 25,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Micro-batching a lakehouse every five seconds recreates the small-file problem and still misses the latency target."
+        }
+      ]
+    },
+    {
+      "id": "W3S08",
+      "week": 3,
+      "day": 4,
+      "domain": "ingest-transform",
+      "objective": "Denormalizing, grouping and aggregating",
+      "title": "Sixty joins per report",
+      "incident": "The Belgian model arrived fully normalized: 60 tables in third normal form. Every merged report joins a dozen of them, Direct Lake queries are slow, and business users cannot find anything.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Denormalize into a star schema in gold, with conformed dimensions and a fact table at the grain the reports need",
+          "cuCost": 15,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Third normal form optimizes writes; analytics wants a star schema. Denormalizing into conformed dimensions and facts at a defined grain is what makes both the engine and the business users fast."
+        },
+        {
+          "id": "B",
+          "text": "Create a view that joins the 60 tables and point the semantic model at it",
+          "cuCost": 10,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "The joins still happen, once per query, and Direct Lake cannot benefit from a layout that does not exist on disk."
+        },
+        {
+          "id": "C",
+          "text": "Pre-aggregate each report numbers into its own summary table",
+          "cuCost": 20,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Fast until the next question. Twelve summary tables and no model anyone can explore."
+        },
+        {
+          "id": "D",
+          "text": "Keep the normalized model and train the business users on the joins",
+          "cuCost": 5,
+          "slaDelta": -20,
+          "correct": false,
+          "feedback": "Pushing a modelling problem onto everyone who will ever open the report."
+        }
+      ]
+    },
+    {
+      "id": "W3S09",
+      "week": 3,
+      "day": 5,
+      "domain": "ingest-transform",
+      "objective": "Choosing a transformation tool: KQL and eventhouse",
+      "title": "Nine months of telemetry",
+      "incident": "Merged fleet telemetry lands at 900 GB a month. Operations queries the last seven days constantly with time-range and pattern searches. Finance queries the last nine months once a quarter for a cost model.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Keep hot telemetry in an eventhouse queried with KQL, and tier the older months out to a lakehouse for the quarterly job",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "KQL and the eventhouse are built for time-series and pattern queries over recent data. Nine-month scans read four times a year belong in cheap lakehouse storage, read by Spark or T-SQL when the question is actually asked."
+        },
+        {
+          "id": "B",
+          "text": "Keep all nine months in the eventhouse",
+          "cuCost": 25,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "You are paying eventhouse rates for nearly nine months of data that is read four times a year.",
+          "followUp": "W3S09F"
+        },
+        {
+          "id": "C",
+          "text": "Keep everything in a lakehouse and query it with Spark",
+          "cuCost": 15,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Correct for the quarterly job, far too slow for the pattern searches operations runs all day."
+        },
+        {
+          "id": "D",
+          "text": "Keep everything in the warehouse and query it with T-SQL",
+          "cuCost": 20,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "T-SQL over eight terabytes of time-series with pattern matching is the wrong engine for the dominant workload."
+        }
+      ]
+    },
+    {
+      "id": "W3S09F",
+      "week": 3,
+      "day": 5,
+      "domain": "ingest-transform",
+      "objective": "Choosing a transformation tool: KQL and eventhouse",
+      "title": "Follow-up: the eventhouse bill",
+      "incident": "The eventhouse now holds eight terabytes. The Capacity Metrics app shows it consuming more CU than every pipeline combined, and the CFO has circled the line in red.",
+      "isFollowUp": true,
+      "options": [
+        {
+          "id": "A",
+          "text": "Set retention and caching policies for the hot window, and export the cold months to the lakehouse before they age out",
+          "cuCost": 10,
+          "slaDelta": 5,
+          "correct": true,
+          "feedback": "Retention and caching policies are how an eventhouse stays affordable. Hot cache for what gets queried, retention for what must stay queryable, and the lakehouse for the rest."
+        },
+        {
+          "id": "B",
+          "text": "Delete everything older than 30 days",
+          "cuCost": 5,
+          "slaDelta": -20,
+          "correct": false,
+          "feedback": "The quarterly cost model needs nine months. You have just deleted the input to it."
+        }
+      ]
+    },
+    {
+      "id": "W3S10",
+      "week": 3,
+      "day": 5,
+      "domain": "ingest-transform",
+      "objective": "Choosing an appropriate data store",
+      "title": "Where does gold live",
+      "incident": "The merged gold layer has to serve three consumers: Power BI reports over a star schema, a Belgian application issuing ad-hoc T-SQL with multi-statement transactions, and data scientists running Spark notebooks.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Build gold in a warehouse for the transactional T-SQL consumer, and let Spark and Power BI read the same OneLake data",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "The multi-statement transaction requirement is the deciding constraint, and only the warehouse offers it. Everything else reads the same Delta tables in OneLake, so Spark and Direct Lake are served without a copy."
+        },
+        {
+          "id": "B",
+          "text": "Build gold in a lakehouse and give the application the SQL analytics endpoint",
+          "cuCost": 10,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "The SQL analytics endpoint is read-only. The application multi-statement transactions have nowhere to go."
+        },
+        {
+          "id": "C",
+          "text": "Build gold twice: a lakehouse for Spark and a warehouse for SQL",
+          "cuCost": 20,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Two golds, two loads and two versions of the truth, to avoid noticing that both engines read the same OneLake storage."
+        },
+        {
+          "id": "D",
+          "text": "Build gold in an eventhouse so everything is fast",
+          "cuCost": 20,
+          "slaDelta": -20,
+          "correct": false,
+          "feedback": "An eventhouse is a time-series store. A merged finance star schema is not its workload."
+        }
+      ]
+    },
+    {
+      "id": "W3S11",
+      "week": 3,
+      "day": 6,
+      "domain": "monitor-optimize",
+      "objective": "Identifying and resolving notebook errors",
+      "title": "The notebook that dies at 03:00",
+      "incident": "The merged settlement notebook fails most nights with \"Job aborted due to stage failure ... java.lang.OutOfMemoryError\". It succeeds every time an engineer runs it by hand in the morning.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Read the Spark application detail and driver logs to find the skewed stage, then fix the join and size the pool for it",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "The Spark monitoring detail shows which stage failed and how its partitions were distributed. A job that passes on a quiet capacity and fails at 03:00 alongside everything else is usually skew plus contention, and the logs say which."
+        },
+        {
+          "id": "B",
+          "text": "Raise the executor memory until it stops failing",
+          "cuCost": 20,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Sometimes works, always expensive, and it never tells you that one partition was doing 90 percent of the work."
+        },
+        {
+          "id": "C",
+          "text": "Add a retry so it runs three times before failing",
+          "cuCost": 15,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Three out-of-memory failures instead of one, at three times the CU."
+        },
+        {
+          "id": "D",
+          "text": "Move the notebook to 06:00 when the capacity is quiet",
+          "cuCost": 5,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "It runs at 03:00 because downstream needs it by 06:00. Moving it moves the failure."
+        }
+      ]
+    },
+    {
+      "id": "W3S12",
+      "week": 3,
+      "day": 6,
+      "domain": "monitor-optimize",
+      "objective": "Identifying and resolving T-SQL errors",
+      "title": "Deadlocked at month end",
+      "incident": "Two merged month-end procedures write to the same warehouse tables in opposite order. One aborts on a conflict, leaves its work half applied, and the reconciliation report comes out wrong.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Wrap each procedure in an explicit transaction, order the writes consistently, and retry the loser on conflict",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Explicit transactions make a failed procedure leave nothing behind, consistent write ordering removes the cycle, and a retry handles the conflict that remains. The half-applied work is what turned this into a reporting error rather than an inconvenience."
+        },
+        {
+          "id": "B",
+          "text": "Schedule the two procedures an hour apart",
+          "cuCost": 5,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Works until one of them runs long, and it does nothing about the half-applied writes when something else fails."
+        },
+        {
+          "id": "C",
+          "text": "Wrap the procedure in a WHILE loop that retries on any error",
+          "cuCost": 10,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Retrying a non-transactional procedure re-applies work it has already committed."
+        },
+        {
+          "id": "D",
+          "text": "Merge the two procedures into one so they cannot conflict",
+          "cuCost": 15,
+          "slaDelta": 0,
+          "correct": false,
+          "feedback": "Removes this specific conflict and creates one procedure that two teams now have to change together."
+        }
+      ]
+    },
+    {
+      "id": "W3S13",
+      "week": 3,
+      "day": 6,
+      "domain": "monitor-optimize",
+      "objective": "Optimizing a pipeline",
+      "title": "Six hours to copy",
+      "incident": "The nightly copy of the Belgian settlement tables takes six hours. The monitor shows one copy activity moving 400 GB from SQL Server through a gateway, one table at a time, at low throughput.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Partition the source reads, raise the degree of copy parallelism, and stage through the landing zone",
+          "cuCost": 15,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "A single-threaded copy over a gateway is bounded by one connection. Source partitioning plus a higher degree of copy parallelism uses the gateway capacity, and staging decouples extract speed from the destination write."
+        },
+        {
+          "id": "B",
+          "text": "Run the same copy activity every hour so it is always mostly done",
+          "cuCost": 25,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "Six one-hour copies of overlapping data. More CU, the same throughput, and a new consistency problem.",
+          "followUp": "W3S13F"
+        },
+        {
+          "id": "C",
+          "text": "Compress the data at the source first",
+          "cuCost": 10,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Helps the wire and does nothing about a single-threaded read on a gateway that is not saturated."
+        },
+        {
+          "id": "D",
+          "text": "Request a larger capacity",
+          "cuCost": 25,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "The bottleneck is one connection through a gateway. More CU does not widen it."
+        }
+      ]
+    },
+    {
+      "id": "W3S13F",
+      "week": 3,
+      "day": 6,
+      "domain": "monitor-optimize",
+      "objective": "Optimizing a pipeline",
+      "title": "Follow-up: which copy is right",
+      "incident": "The hourly copies overlap. Two runs wrote the same settlement rows with different values, the reconciliation now fails on 11,000 records, and nobody can say which run is authoritative.",
+      "isFollowUp": true,
+      "options": [
+        {
+          "id": "A",
+          "text": "Stop the overlapping schedule, make the load idempotent with a MERGE on the business key, and reload the affected window",
+          "cuCost": 15,
+          "slaDelta": 5,
+          "correct": true,
+          "feedback": "Idempotency is what makes a load safe to repeat. A MERGE on the business key means a rerun converges instead of duplicating, and then the window can simply be reloaded."
+        },
+        {
+          "id": "B",
+          "text": "Keep the last write for each record and move on",
+          "cuCost": 5,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Last write wins by accident of scheduling, not by correctness. The reconciliation is still wrong, it is just quiet now."
+        }
+      ]
+    },
+    {
+      "id": "W3S14",
+      "week": 3,
+      "day": 7,
+      "domain": "monitor-optimize",
+      "objective": "Monitoring a semantic model",
+      "title": "The model that fell back",
+      "incident": "The merged finance model is Direct Lake. Since the merger load, morning queries are five times slower and users report timeouts. The report itself has not changed.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Check the refresh history and the Direct Lake fallback state, then fix the guardrail the merged data is breaching",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "Direct Lake falls back to DirectQuery when a guardrail is exceeded, for example a row count limit or a table it cannot read in Direct Lake mode. The refresh history and fallback indicators tell you which, and slower-but-working is the signature of fallback rather than failure."
+        },
+        {
+          "id": "B",
+          "text": "Switch the model to import mode",
+          "cuCost": 20,
+          "slaDelta": -5,
+          "correct": false,
+          "feedback": "Trades the problem for a refresh window and a memory ceiling, without ever learning what broke Direct Lake."
+        },
+        {
+          "id": "C",
+          "text": "Rebuild the report with fewer visuals",
+          "cuCost": 10,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "The report did not change. The data underneath it did."
+        },
+        {
+          "id": "D",
+          "text": "Move to a larger capacity SKU",
+          "cuCost": 25,
+          "slaDelta": -10,
+          "correct": false,
+          "feedback": "A larger SKU raises the Direct Lake guardrails, so it might mask this. An expensive way to avoid reading the fallback reason."
+        }
+      ]
+    },
+    {
+      "id": "W3S15",
+      "week": 3,
+      "day": 7,
+      "domain": "monitor-optimize",
+      "objective": "Optimizing and evidencing query performance",
+      "title": "The auditor last question",
+      "incident": "The auditor closing question: show that the merged platform month-end close finishes inside its four-hour window, and show that you can prove it again next month without doing this by hand.",
+      "options": [
+        {
+          "id": "A",
+          "text": "Instrument the close as a monitored pipeline and report the trend of run duration and CU per stage from the Capacity Metrics app",
+          "cuCost": 10,
+          "slaDelta": 10,
+          "correct": true,
+          "feedback": "The question is not whether it is fast today, it is whether you can show it stays fast. Monitor hub gives run history per activity, the Capacity Metrics app gives CU per item over time, and together they are a repeatable answer rather than a screenshot."
+        },
+        {
+          "id": "B",
+          "text": "Run the close now, time it with a stopwatch, and send the auditor a screenshot",
+          "cuCost": 0,
+          "slaDelta": -15,
+          "correct": false,
+          "feedback": "Answers this month and guarantees an identical afternoon next month."
+        },
+        {
+          "id": "C",
+          "text": "Export every run log to a lakehouse and build a custom report on it",
+          "cuCost": 25,
+          "slaDelta": 0,
+          "correct": false,
+          "feedback": "A defensible answer at a high build cost, when the platform already emits both halves of it."
+        },
+        {
+          "id": "D",
+          "text": "Tell the auditor the close has never missed its window",
+          "cuCost": 0,
+          "slaDelta": -20,
+          "correct": false,
+          "feedback": "An assertion is not evidence, and the auditor asked for evidence."
+        }
+      ]
+    }
+  ]
+}
