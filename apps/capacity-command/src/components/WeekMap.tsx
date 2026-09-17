@@ -28,8 +28,6 @@ const XS = [119, 45, 183];
 const TOP = 14;
 
 export function WeekMap({ game, scenarios, onOpen }: WeekMapProps) {
-  // Title comes from the week config, so the map names whichever week is
-  // being played rather than a hardcoded string.
   const week = weekConfig(game.week);
   const byCode = new Map(scenarios.map((s) => [s.code, s]));
   const nodes: MapNode[] = [
@@ -81,7 +79,7 @@ export function WeekMap({ game, scenarios, onOpen }: WeekMapProps) {
             Week {game.week}
           </div>
           <div className="font-display text-xl font-semibold leading-tight">
-            {week?.title ?? `Week ${game.week}`}
+            {week?.title ?? 'Platform on-call'}
           </div>
         </div>
         <div className="font-display text-lg text-mute">
@@ -100,7 +98,7 @@ export function WeekMap({ game, scenarios, onOpen }: WeekMapProps) {
         </span>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto pt-1.5">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         <div className="relative mx-auto w-[300px]" style={{ height: mapHeight }}>
           <svg
             width="300"

@@ -123,6 +123,13 @@ export const IconUser = icon(
     <path d="M4 21a8 8 0 0 1 16 0" />
   </>
 );
+export const IconSignOut = icon(
+  <>
+    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+    <path d="m16 17 5-5-5-5" />
+    <path d="M21 12H9" />
+  </>
+);
 export const IconChevron = icon(<path d="m9 18 6-6-6-6" />);
 export const IconBack = icon(<path d="m15 18-6-6 6-6" />);
 export const IconCheck = icon(<path d="M20 6 9 17l-5-5" />);
@@ -130,13 +137,6 @@ export const IconLock = icon(
   <>
     <rect x="3" y="11" width="18" height="11" rx="2" />
     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-  </>
-);
-export const IconAlert = icon(
-  <>
-    <path d="M10.3 3.9 2.4 17.5a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
-    <path d="M12 9v4" />
-    <path d="M12 17h.01" />
   </>
 );
 

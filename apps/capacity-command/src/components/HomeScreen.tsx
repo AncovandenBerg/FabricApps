@@ -1,7 +1,5 @@
 // Briefing / home screen from the mockups: greeting, exam countdown with
-// readiness ring, start-or-resume card, lifetime mastery, campaign list.
-// Every week-specific number here (day count, incident count, CU budget,
-// title, story) comes from the week config, never from a constant.
+// readiness ring, start-or-resume card, lifetime mastery, weeks completed.
 import { useState } from 'react';
 
 import { IconChevron, IconPlay, Ring } from '@/components/bits';
@@ -143,8 +141,8 @@ export function HomeScreen({
 
       {!activeGame && (
         <p className="mt-3 px-1 text-xs leading-relaxed text-mute">
-          {week.subtitle} Incidents arrive daily. Every decision costs Capacity
-          Units and moves your SLA, and careless calls come back as follow-up
+          {week.subtitle} Incidents arrive daily; every decision costs Capacity
+          Units, moves your SLA, and careless calls come back as follow-up
           incidents. Every incident maps to a DP-700 exam objective.
         </p>
       )}

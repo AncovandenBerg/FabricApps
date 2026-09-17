@@ -4,15 +4,13 @@
 //
 // A game is always scoped to a single campaign week. Which weeks exist and
 // how each is balanced comes from seed/campaign.json via game/campaign.ts;
-// the engine only ever receives one WeekConfig at a time and never assumes
-// how many weeks there are or how long one runs.
+// the engine only ever receives one WeekConfig at a time.
 
 import { FIRST_WEEK, weekConfig, type WeekConfig } from './campaign';
-
 import type { AttemptRecord, DomainSummary, GameScenario } from './types';
 
 // Fallbacks for a week whose config omits a value, and the defaults the
-// tests and fixtures lean on. Real budgets come from campaign.json.
+// tests and fixtures lean on.
 export const STARTING_CU = 100;
 export const STARTING_SLA = 100;
 export const WEEK_LENGTH = 7;
@@ -21,21 +19,7 @@ export const WEEK_LENGTH = 7;
 const SCORE_MIN = 0;
 const SCORE_MAX = 200;
 
-export type GamePhase = 'incident' | 'feedback' | 'breach' | 'summary';
-
-/**
- * The decision that broke the budget. A week ends the moment a decision costs
- * more capacity than it has left, so this is recorded once and never
- * overwritten: the first overspend is the one that took the platform down.
- */
-export interface Breach {
-  scenarioCode: string;
-  /** What the chosen option cost. */
-  cost: number;
-  /** CU left before that cost was applied. */
-  available: number;
-  day: number;
-}
+export type GamePhase = 'incident' | 'feedback' | 'summary';
 
 export interface GameState {
   phase: GamePhase;
@@ -58,8 +42,6 @@ export interface GameState {
   /** Attempt shown in the feedback panel; last entry of attempts. */
   lastAttempt: AttemptRecord | null;
   attempts: AttemptRecord[];
-  /** Set once capacity ran out; the week ends after this decision's feedback. */
-  breach: Breach | null;
 }
 
 function clamp(value: number): number {
@@ -123,7 +105,6 @@ export function startGame(
     chained: [],
     lastAttempt: null,
     attempts: [],
-    breach: null,
   };
 }
 
@@ -131,11 +112,6 @@ export function startGame(
  * Apply a decision: costs CU, moves SLA, records the attempt, enqueues a
  * follow-up when the chosen option has one. Moves to the feedback phase.
  * The full scenario list is needed to resolve followUpCode references.
- *
- * Spending more than the week has left is a breach: the decision still
- * resolves and still shows its feedback, but the run ends there. Spending the
- * last unit exactly is survival, not a breach, so the test is strictly
- * greater than.
  */
 export function choose(
   state: GameState,
@@ -171,17 +147,6 @@ export function choose(
     }
   }
 
-  const breach =
-    state.breach ??
-    (option.cuCost > state.cu
-      ? {
-          scenarioCode: state.current.code,
-          cost: option.cuCost,
-          available: state.cu,
-          day: state.day,
-        }
-      : null);
-
   return {
     ...state,
     phase: 'feedback',
@@ -190,7 +155,6 @@ export function choose(
     chained,
     lastAttempt: attempt,
     attempts: [...state.attempts, attempt],
-    breach,
   };
 }
 
@@ -198,17 +162,10 @@ export function choose(
  * Leave the feedback panel: play a chained follow-up first, then the next
  * scenario in the day queue. Day advances with the queue; after the last
  * scenario the game moves to the summary phase.
- *
- * A breached week ends here instead. The queues are left untouched on purpose,
- * so the breach report can say how many incidents were never reached.
  */
 export function advance(state: GameState): GameState {
   if (state.phase !== 'feedback') {
     throw new Error(`advance() is only valid in the feedback phase (was: ${state.phase}).`);
-  }
-
-  if (state.breach) {
-    return { ...state, phase: 'breach', current: null };
   }
 
   const chained = [...state.chained];
@@ -247,17 +204,10 @@ export interface SavedGame {
   chainedCodes: string[];
   lastAttempt: AttemptRecord | null;
   attempts: AttemptRecord[];
-  /**
-   * Optional: absent on snapshots written before breaches existed, which
-   * replay as an intact run. This has to persist, because a breach is set
-   * while the phase is still `feedback` and that state gets saved: without
-   * it, reloading the tab would walk out of a lost week.
-   */
-  breach?: Breach | null;
 }
 
 export function serializeGame(state: GameState): SavedGame {
-  if (state.phase === 'summary' || state.phase === 'breach') {
+  if (state.phase === 'summary') {
     throw new Error('A finished week is recorded to history, not saved.');
   }
   return {
@@ -271,16 +221,7 @@ export function serializeGame(state: GameState): SavedGame {
     chainedCodes: state.chained.map((s) => s.code),
     lastAttempt: state.lastAttempt,
     attempts: state.attempts,
-    breach: state.breach,
   };
-}
-
-/** Stamp the playing week onto an attempt saved before weeks existed. */
-function withWeek(attempt: AttemptRecord, week: number): AttemptRecord {
-  // Snapshots from the pre-campaign build carry no weekNumber at all, so
-  // the field has to be probed rather than compared.
-  const stored = attempt as Partial<AttemptRecord>;
-  return stored.weekNumber === undefined ? { ...attempt, weekNumber: week } : attempt;
 }
 
 /**
@@ -289,10 +230,6 @@ function withWeek(attempt: AttemptRecord, week: number): AttemptRecord {
  * a missing current scenario falls back to the next queued one. The week's
  * balance is re-read from the config, so rebalancing a week applies to a
  * game already in flight.
- *
- * A snapshot saved by the pre-campaign build has no `week` and attempts
- * with no `weekNumber`. Both default to the first configured week, so a
- * player mid-week when the update lands keeps their run.
  */
 export function restoreGame(
   saved: SavedGame,
@@ -324,11 +261,8 @@ export function restoreGame(
     current,
     pending,
     chained,
-    lastAttempt: saved.lastAttempt
-      ? withWeek(saved.lastAttempt, config.number)
-      : null,
-    attempts: saved.attempts.map((a) => withWeek(a, config.number)),
-    breach: saved.breach ?? null,
+    lastAttempt: saved.lastAttempt,
+    attempts: saved.attempts,
   };
 }
 

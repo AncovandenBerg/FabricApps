@@ -1,289 +1,280 @@
-// Validates seed/campaign.json + seed/scenarios.json and, on a real run,
-// generates seed/seed.sql from them.
-//
-// This repo ships no backend, so there is no database to write to directly.
-// The seedable artifact is idempotent T-SQL: create-if-absent DDL, ALTER
-// guards that add the campaign columns with a DEFAULT of 1 so a database
-// already holding pre-campaign rows survives the schema change, then MERGE
-// upserts on the business keys. Run it against whatever SQL database the
-// app is eventually pointed at.
+// Seeds Scenario + ScenarioOption from seed/scenarios.json via the typed
+// Rayfin data client. Idempotent: upserts on Scenario.code and
+// ScenarioOption.optionKey, and deletes options that were removed from the
+// JSON. Player telemetry (Session, AttemptEvent) is never touched.
 //
 // Usage:
-//   npm run seed -- --dry-run    validate and print the plan, write nothing
-//   npm run seed                 validate, then write seed/seed.sql
+//   npm run seed -- --dry-run      validate and print the plan, no network
+//   RAYFIN_SEED_PASSWORD=... npm run seed
 //
-// Validation lives in src/game/validate.ts, is pure, and is unit-tested.
-// This file is only the I/O shell around it.
+// Auth: signs in as the dedicated seed account (see rayfin/data/seedUser.ts).
+// The entity policy grants create/update/delete on the two reference tables
+// to that account only; players keep read-only access.
 
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import {
-  scenarioWeek,
-  validateContent,
-  type AuthoredScenario,
-  type AuthoredWeek,
-} from '../src/game/validate.ts';
+import { RayfinClient } from '@microsoft/rayfin-client';
+
+import type { CapacityCommandSchema } from '../rayfin/data/schema.js';
+import { SEED_USER_EMAIL } from '../rayfin/data/seedUser.js';
+
+interface SeedOption {
+  id: string;
+  text: string;
+  cuCost: number;
+  slaDelta: number;
+  correct: boolean;
+  feedback: string;
+  followUp?: string;
+}
+
+interface SeedScenario {
+  id: string;
+  week: number;
+  day: number;
+  domain: string;
+  objective: string;
+  title: string;
+  incident: string;
+  isFollowUp?: boolean;
+  options: SeedOption[];
+}
+
+interface SeedWeek {
+  number: number;
+  title: string;
+  subtitle: string;
+  days: number;
+  startingCu: number;
+  startingSla: number;
+}
 
 const projectRoot = join(dirname(fileURLToPath(import.meta.url)), '..');
-const seedDir = join(projectRoot, 'seed');
 
-function readJson(fileName: string): unknown {
-  return JSON.parse(readFileSync(join(seedDir, fileName), 'utf-8'));
-}
-
-function loadScenarios(): AuthoredScenario[] {
-  const raw = readJson('scenarios.json') as { scenarios?: AuthoredScenario[] };
-  if (!Array.isArray(raw.scenarios)) {
-    throw new Error('seed/scenarios.json has no "scenarios" array.');
+function loadRayfinEnv(): Record<string, string> {
+  const vars: Record<string, string> = {};
+  const envFile = readFileSync(join(projectRoot, 'rayfin', '.env'), 'utf-8');
+  for (const line of envFile.split('\n')) {
+    const match = line.match(/^([^#=]+)=(.+)$/);
+    if (match) vars[match[1].trim()] = match[2].trim();
   }
-  return raw.scenarios;
+  return vars;
 }
 
-function loadWeeks(): AuthoredWeek[] {
-  const raw = readJson('campaign.json') as { weeks?: AuthoredWeek[] };
-  if (!Array.isArray(raw.weeks)) {
-    throw new Error('seed/campaign.json has no "weeks" array.');
+function loadScenarios(): SeedScenario[] {
+  const raw = JSON.parse(
+    readFileSync(join(projectRoot, 'seed', 'scenarios.json'), 'utf-8')
+  );
+  return raw.scenarios as SeedScenario[];
+}
+
+function loadWeeks(): SeedWeek[] {
+  const raw = JSON.parse(
+    readFileSync(join(projectRoot, 'seed', 'campaign.json'), 'utf-8')
+  );
+  return raw.weeks as SeedWeek[];
+}
+
+/**
+ * Content rules the game depends on. The week checks matter most: a
+ * scenario in an unconfigured week is unreachable, and a follow-up that
+ * points across a week boundary would drop a player into another week's
+ * story mid-incident.
+ */
+function validate(scenarios: SeedScenario[], weeks: SeedWeek[]): string[] {
+  const errors: string[] = [];
+  const codes = new Set(scenarios.map((s) => s.id));
+  const weekNumbers = new Set(weeks.map((w) => w.number));
+  const daysByWeek = new Map(weeks.map((w) => [w.number, w.days]));
+
+  for (const w of weeks) {
+    const playable = scenarios.filter((s) => s.week === w.number && !s.isFollowUp);
+    if (playable.length === 0) {
+      errors.push(`week ${w.number} ("${w.title}") has no playable scenarios`);
+    }
+    if (w.days < 1) errors.push(`week ${w.number}: days must be at least 1`);
   }
-  return raw.weeks;
+  if (weekNumbers.size !== weeks.length) {
+    errors.push('duplicate week numbers in campaign.json');
+  }
+
+  for (const s of scenarios) {
+    if (!weekNumbers.has(s.week)) {
+      errors.push(`${s.id}: week ${s.week} is not configured in campaign.json`);
+    }
+    const days = daysByWeek.get(s.week);
+    if (days !== undefined && (s.day < 1 || s.day > days)) {
+      errors.push(`${s.id}: day ${s.day} is outside week ${s.week} (1..${days})`);
+    }
+    const correct = s.options.filter((o) => o.correct);
+    if (correct.length !== 1) {
+      errors.push(`${s.id}: expected exactly 1 correct option, found ${correct.length}`);
+    }
+    if (s.options.length < 2) {
+      errors.push(`${s.id}: needs at least 2 options`);
+    }
+    for (const o of s.options) {
+      if (o.followUp) {
+        const target = scenarios.find((t) => t.id === o.followUp);
+        if (!target) {
+          errors.push(`${s.id}/${o.id}: followUp "${o.followUp}" does not exist`);
+        } else if (!target.isFollowUp) {
+          errors.push(`${s.id}/${o.id}: followUp target "${o.followUp}" is not marked isFollowUp`);
+        } else if (target.week !== s.week) {
+          errors.push(
+            `${s.id}/${o.id}: followUp "${o.followUp}" is in week ${target.week}, not week ${s.week}`
+          );
+        }
+      }
+    }
+  }
+  return [...errors, ...(codes.size !== scenarios.length ? ['duplicate scenario ids'] : [])];
 }
 
-/** N'...' literal with quotes doubled. */
-function q(value: string): string {
-  return `N'${value.replace(/'/g, "''")}'`;
-}
-
-function qOpt(value: string | undefined): string {
-  return value === undefined ? 'NULL' : q(value);
-}
-
-function bit(value: boolean): string {
-  return value ? '1' : '0';
-}
-
-function buildSql(scenarios: AuthoredScenario[], weeks: AuthoredWeek[]): string {
-  const scenarioRows = scenarios
-    .map(
-      (s) =>
-        `    (${q(s.id)}, ${scenarioWeek(s)}, ${s.day}, ${q(s.domain)}, ` +
-        `${q(s.objective)}, ${q(s.title)}, ${q(s.incident)}, ` +
-        `${bit(s.isFollowUp ?? false)})`
-    )
-    .join(',\n');
-
-  const optionRows = scenarios
-    .flatMap((s) =>
-      s.options.map(
-        (o) =>
-          `    (${q(s.id)}, ${q(o.id)}, ${q(o.text)}, ${o.cuCost}, ` +
-          `${o.slaDelta}, ${bit(o.correct)}, ${q(o.feedback)}, ${qOpt(o.followUp)})`
-      )
-    )
-    .join(',\n');
-
-  const weekList = weeks
-    .map(
-      (w) =>
-        `--   week ${w.number} "${w.title}": ${w.days} days, ` +
-        `${w.startingCu} CU / ${w.startingSla} SLA`
-    )
-    .join('\n');
-
-  return `-- Generated by scripts/seed.ts from seed/scenarios.json and
--- seed/campaign.json. Idempotent: safe to rerun. Do not edit by hand; edit
--- the JSON and regenerate with: npm run seed
---
--- Campaign configured in seed/campaign.json:
-${weekList}
---
--- Week structure itself is NOT stored in the database. Rows only record
--- which week they belong to; day counts and budgets stay in campaign.json.
-
-SET XACT_ABORT ON;
-BEGIN TRANSACTION;
-
--- Reference data ------------------------------------------------------------
-
-IF OBJECT_ID('dbo.Scenarios', 'U') IS NULL
-CREATE TABLE dbo.Scenarios (
-    id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    code NVARCHAR(10) NOT NULL UNIQUE,
-    week INT NOT NULL DEFAULT 1,
-    [day] INT NOT NULL,
-    domain NVARCHAR(30) NOT NULL,
-    objective NVARCHAR(100) NOT NULL,
-    title NVARCHAR(100) NOT NULL,
-    incident NVARCHAR(1000) NOT NULL,
-    isFollowUp BIT NOT NULL DEFAULT 0
-);
-
-IF OBJECT_ID('dbo.ScenarioOptions', 'U') IS NULL
-CREATE TABLE dbo.ScenarioOptions (
-    id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    scenario_id UNIQUEIDENTIFIER NOT NULL
-        REFERENCES dbo.Scenarios (id) ON DELETE CASCADE,
-    optionKey NVARCHAR(5) NOT NULL,
-    optionText NVARCHAR(500) NOT NULL,
-    cuCost INT NOT NULL,
-    slaDelta INT NOT NULL,
-    correct BIT NOT NULL DEFAULT 0,
-    feedback NVARCHAR(1000) NOT NULL,
-    followUpCode NVARCHAR(10) NULL,
-    CONSTRAINT UQ_ScenarioOptions_key UNIQUE (scenario_id, optionKey)
-);
-
--- Telemetry -----------------------------------------------------------------
-
-IF OBJECT_ID('dbo.Sessions', 'U') IS NULL
-CREATE TABLE dbo.Sessions (
-    id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    userId NVARCHAR(100) NOT NULL,
-    startedAt DATETIME2 NOT NULL,
-    completedAt DATETIME2 NULL,
-    weekNumber INT NOT NULL DEFAULT 1,
-    cuRemaining INT NOT NULL DEFAULT 100,
-    slaScore INT NOT NULL DEFAULT 100,
-    currentDay INT NOT NULL DEFAULT 1,
-    completed BIT NOT NULL DEFAULT 0,
-    -- "completed" or "breached". A run that ran out of capacity still sets
-    -- completed, because the session did finish; this says whether the week
-    -- was survived.
-    outcome NVARCHAR(20) NOT NULL DEFAULT 'completed'
-);
-
--- Append-only, and denormalized on purpose: the analytics notebook reads
--- this table on its own, with no joins, so mastery can be plotted as a
--- learning curve across the campaign instead of a single average.
-IF OBJECT_ID('dbo.AttemptEvents', 'U') IS NULL
-CREATE TABLE dbo.AttemptEvents (
-    id UNIQUEIDENTIFIER NOT NULL DEFAULT NEWID() PRIMARY KEY,
-    session_id UNIQUEIDENTIFIER NOT NULL
-        REFERENCES dbo.Sessions (id),
-    userId NVARCHAR(100) NOT NULL,
-    scenarioCode NVARCHAR(10) NOT NULL,
-    weekNumber INT NOT NULL DEFAULT 1,
-    domain NVARCHAR(30) NOT NULL,
-    objective NVARCHAR(100) NOT NULL,
-    chosenOptionKey NVARCHAR(5) NOT NULL,
-    correct BIT NOT NULL,
-    cuCost INT NOT NULL,
-    slaDelta INT NOT NULL,
-    secondsToDecide INT NOT NULL,
-    createdAt DATETIME2 NOT NULL
-);
-
--- Campaign columns on databases that predate the campaign. NOT NULL with a
--- DEFAULT of 1, so rows already deployed become week 1 rather than null.
-
-IF COL_LENGTH('dbo.Scenarios', 'week') IS NULL
-ALTER TABLE dbo.Scenarios
-    ADD week INT NOT NULL CONSTRAINT DF_Scenarios_week DEFAULT 1 WITH VALUES;
-
-IF COL_LENGTH('dbo.Sessions', 'weekNumber') IS NULL
-ALTER TABLE dbo.Sessions
-    ADD weekNumber INT NOT NULL CONSTRAINT DF_Sessions_weekNumber DEFAULT 1 WITH VALUES;
-
-IF COL_LENGTH('dbo.AttemptEvents', 'weekNumber') IS NULL
-ALTER TABLE dbo.AttemptEvents
-    ADD weekNumber INT NOT NULL CONSTRAINT DF_AttemptEvents_weekNumber DEFAULT 1 WITH VALUES;
-
--- Rows written before a week could be lost were all survivable, so they
--- default to "completed" rather than being backfilled.
-IF COL_LENGTH('dbo.Sessions', 'outcome') IS NULL
-ALTER TABLE dbo.Sessions
-    ADD outcome NVARCHAR(20) NOT NULL CONSTRAINT DF_Sessions_outcome DEFAULT 'completed' WITH VALUES;
-
--- Content upsert ------------------------------------------------------------
-
-MERGE dbo.Scenarios AS t
-USING (VALUES
-${scenarioRows}
-) AS s (code, week, [day], domain, objective, title, incident, isFollowUp)
-ON t.code = s.code
-WHEN MATCHED THEN UPDATE SET
-    week = s.week,
-    [day] = s.[day],
-    domain = s.domain,
-    objective = s.objective,
-    title = s.title,
-    incident = s.incident,
-    isFollowUp = s.isFollowUp
-WHEN NOT MATCHED THEN INSERT (code, week, [day], domain, objective, title, incident, isFollowUp)
-    VALUES (s.code, s.week, s.[day], s.domain, s.objective, s.title, s.incident, s.isFollowUp);
-
-MERGE dbo.ScenarioOptions AS t
-USING (
-    SELECT sc.id AS scenario_id, v.optionKey, v.optionText, v.cuCost,
-           v.slaDelta, v.correct, v.feedback, v.followUpCode
-    FROM (VALUES
-${optionRows}
-    ) AS v (scenarioCode, optionKey, optionText, cuCost, slaDelta, correct, feedback, followUpCode)
-    INNER JOIN dbo.Scenarios sc ON sc.code = v.scenarioCode
-) AS s
-ON t.scenario_id = s.scenario_id AND t.optionKey = s.optionKey
-WHEN MATCHED THEN UPDATE SET
-    optionText = s.optionText,
-    cuCost = s.cuCost,
-    slaDelta = s.slaDelta,
-    correct = s.correct,
-    feedback = s.feedback,
-    followUpCode = s.followUpCode
-WHEN NOT MATCHED THEN INSERT (scenario_id, optionKey, optionText, cuCost, slaDelta, correct, feedback, followUpCode)
-    VALUES (s.scenario_id, s.optionKey, s.optionText, s.cuCost, s.slaDelta, s.correct, s.feedback, s.followUpCode)
-WHEN NOT MATCHED BY SOURCE THEN DELETE;
-
-COMMIT TRANSACTION;
-
-SELECT week, COUNT(*) AS scenarios
-FROM dbo.Scenarios
-GROUP BY week
-ORDER BY week;
-`;
-}
-
-function main(): void {
+async function main(): Promise<void> {
   const dryRun = process.argv.includes('--dry-run');
   const scenarios = loadScenarios();
   const weeks = loadWeeks();
 
-  const errors = validateContent(scenarios, weeks);
+  const errors = validate(scenarios, weeks);
   if (errors.length > 0) {
     console.error('Seed content failed validation:');
     for (const e of errors) console.error(`  - ${e}`);
     process.exit(1);
   }
-
   const optionCount = scenarios.reduce((n, s) => n + s.options.length, 0);
   console.log(
     `Validated ${weeks.length} weeks, ${scenarios.length} scenarios, ${optionCount} options.`
   );
 
-  for (const w of weeks) {
-    const inWeek = scenarios.filter((s) => scenarioWeek(s) === w.number);
-    const playable = inWeek.filter((s) => !s.isFollowUp).length;
-    console.log(
-      `Week ${w.number} "${w.title}": ${w.days} days, ${playable} incidents, ` +
-        `${inWeek.length - playable} follow-ups, ${w.startingCu} CU / ${w.startingSla} SLA`
-    );
-    if (dryRun) {
+  if (dryRun) {
+    for (const w of weeks) {
+      const inWeek = scenarios.filter((s) => s.week === w.number);
+      const playable = inWeek.filter((s) => !s.isFollowUp).length;
+      console.log(
+        `Week ${w.number} "${w.title}": ${w.days} days, ${playable} incidents, ` +
+          `${inWeek.length - playable} follow-ups, ${w.startingCu} CU / ${w.startingSla} SLA`
+      );
       for (const s of inWeek) {
-        const tag = s.isFollowUp ? ' [follow-up]' : '';
-        console.log(
-          `  upsert ${s.id} (day ${s.day}, ${s.domain})${tag}: ${s.options.length} options`
-        );
+        const tags = s.isFollowUp ? ' [follow-up]' : '';
+        console.log(`  upsert ${s.id} (day ${s.day}, ${s.domain})${tags}: ${s.options.length} options`);
       }
     }
-  }
-
-  if (dryRun) {
     console.log('Dry run only; nothing was written.');
     return;
   }
 
-  const outPath = join(seedDir, 'seed.sql');
-  writeFileSync(outPath, buildSql(scenarios, weeks), 'utf-8');
-  console.log(`Wrote ${outPath}.`);
+  const password = process.env.RAYFIN_SEED_PASSWORD;
+  if (!password) {
+    console.error('RAYFIN_SEED_PASSWORD is required (password for the seed account).');
+    process.exit(1);
+  }
+
+  const env = loadRayfinEnv();
+  const baseUrl = env['RAYFIN_PUBLIC_API_URL'];
+  const publishableKey = env['RAYFIN_PUBLIC_PUBLISHABLE_KEY'];
+  if (!baseUrl || !publishableKey) {
+    console.error('rayfin/.env is missing RAYFIN_PUBLIC_API_URL or RAYFIN_PUBLIC_PUBLISHABLE_KEY. Run npx rayfin up first.');
+    process.exit(1);
+  }
+
+  const client = new RayfinClient<CapacityCommandSchema>({
+    baseUrl: baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`,
+    publishableKey,
+    authStorage: false,
+  });
+
+  try {
+    await client.auth.signUp({ email: SEED_USER_EMAIL, password });
+    console.log(`Created seed account ${SEED_USER_EMAIL}.`);
+  } catch {
+    // Account already exists; sign-in below is the real gate.
+  }
+  await client.auth.signIn({ email: SEED_USER_EMAIL, password });
+  console.log(`Signed in as ${SEED_USER_EMAIL}.`);
+
+  let created = 0;
+  let updated = 0;
+  let optsCreated = 0;
+  let optsUpdated = 0;
+  let optsDeleted = 0;
+
+  for (const s of scenarios) {
+    const fields = {
+      code: s.id,
+      week: s.week,
+      day: s.day,
+      domain: s.domain,
+      objective: s.objective,
+      title: s.title,
+      incident: s.incident,
+      isFollowUp: s.isFollowUp ?? false,
+    };
+
+    const existing = await client.data.Scenario.select(['id'])
+      .where({ code: { eq: s.id } })
+      .execute();
+
+    let scenarioId: string;
+    if (existing.length > 0) {
+      scenarioId = existing[0].id;
+      await client.data.Scenario.update({ id: scenarioId }, fields);
+      updated++;
+    } else {
+      const row = await client.data.Scenario.create(fields);
+      scenarioId = row.id;
+      created++;
+    }
+
+    const existingOpts = await client.data.ScenarioOption.select(['id', 'optionKey'])
+      .where({ scenario: { id: { eq: scenarioId } } })
+      .execute();
+    const staleByKey = new Map(existingOpts.map((o) => [o.optionKey, o.id]));
+
+    for (const o of s.options) {
+      // null (not undefined) so a followUp removed from the JSON is cleared
+      // on rerun. The typed MutationInput only allows string | undefined,
+      // but the runtime serializes null and DAB accepts it, hence the cast.
+      const followUpCode = (o.followUp ?? null) as unknown as string | undefined;
+      const optionFields = {
+        optionKey: o.id,
+        optionText: o.text,
+        cuCost: o.cuCost,
+        slaDelta: o.slaDelta,
+        correct: o.correct,
+        feedback: o.feedback,
+        followUpCode,
+        scenario: { id: scenarioId },
+      };
+      const existingId = staleByKey.get(o.id);
+      if (existingId) {
+        await client.data.ScenarioOption.update({ id: existingId }, optionFields);
+        staleByKey.delete(o.id);
+        optsUpdated++;
+      } else {
+        await client.data.ScenarioOption.create(optionFields);
+        optsCreated++;
+      }
+    }
+
+    // Options removed from the JSON since the last run
+    for (const staleId of staleByKey.values()) {
+      await client.data.ScenarioOption.delete({ id: staleId });
+      optsDeleted++;
+    }
+
+    console.log(`  ${s.id}: ok`);
+  }
+
+  console.log(
+    `Done. Scenarios: ${created} created, ${updated} updated. ` +
+      `Options: ${optsCreated} created, ${optsUpdated} updated, ${optsDeleted} deleted.`
+  );
 }
 
-main();
+main().catch((err) => {
+  console.error('Seed failed:', err);
+  process.exit(1);
+});

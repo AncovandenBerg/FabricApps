@@ -1,12 +1,57 @@
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+
+import { AuthPage } from '@/components/AuthPage';
+import { useAuth } from '@/hooks/AuthContext';
 import { GamePage } from '@/pages/GamePage';
 
-/**
- * The app is a single screen: there is no sign-in to route around and no
- * second page, so it ships without a router. That also means the host web
- * server needs no SPA fallback rule: it is one static page plus assets.
- */
+function AuthGuard({
+  children,
+  requireAuth,
+}: {
+  children: React.ReactNode;
+  requireAuth: boolean;
+}) {
+  const { isAuthenticated, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-sm text-mute">Loading...</div>
+      </div>
+    );
+  }
+
+  if (requireAuth && !isAuthenticated) return <Navigate to="/auth" replace />;
+  if (!requireAuth && isAuthenticated) return <Navigate to="/" replace />;
+
+  return <>{children}</>;
+}
+
 function App() {
-  return <GamePage />;
+  return (
+    <BrowserRouter>
+      {/* ensure all new routes require auth */}
+      <Routes>
+        <Route
+          path="/auth"
+          element={
+            <AuthGuard requireAuth={false}>
+              <AuthPage />
+            </AuthGuard>
+          }
+        />
+        <Route
+          path="/"
+          element={
+            <AuthGuard requireAuth={true}>
+              <GamePage />
+            </AuthGuard>
+          }
+        />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 export default App;

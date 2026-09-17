@@ -4,12 +4,6 @@ interface FeedbackPanelProps {
   scenario: GameScenario;
   attempt: AttemptRecord;
   hasFollowUp: boolean;
-  /**
-   * This decision cost more capacity than the week had left, so continuing
-   * ends the run. It outranks the follow-up warning: whatever this option
-   * queued up will never be played.
-   */
-  breached?: boolean;
   onContinue: () => void;
 }
 
@@ -17,7 +11,6 @@ export function FeedbackPanel({
   scenario,
   attempt,
   hasFollowUp,
-  breached = false,
   onContinue,
 }: FeedbackPanelProps) {
   const option = scenario.options.find(
@@ -54,20 +47,10 @@ export function FeedbackPanel({
       <div className="px-4 pb-4 pt-2">
         <p className="text-sm leading-relaxed text-ink">{option?.feedback}</p>
 
-        {breached ? (
-          <p
-            className="mt-2.5 rounded-lg bg-bad-tint px-3 py-2 text-xs text-bad"
-            data-testid="feedback-breach"
-          >
-            You did not have the capacity for this. The platform is down and
-            the week is over.
+        {hasFollowUp && (
+          <p className="mt-2.5 rounded-lg bg-bad-tint px-3 py-2 text-xs text-bad">
+            This decision has consequences. An incident is coming in.
           </p>
-        ) : (
-          hasFollowUp && (
-            <p className="mt-2.5 rounded-lg bg-bad-tint px-3 py-2 text-xs text-bad">
-              This decision has consequences. An incident is coming in.
-            </p>
-          )
         )}
 
         <button
@@ -75,7 +58,7 @@ export function FeedbackPanel({
           onClick={onContinue}
           className="mt-4 w-full rounded-xl bg-accent py-2.5 text-sm font-medium text-white transition-colors hover:bg-accent-deep"
         >
-          {breached ? 'See what happened' : 'Continue'}
+          Continue
         </button>
       </div>
     </div>

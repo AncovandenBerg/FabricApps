@@ -14,7 +14,7 @@
 
 | App | What it does | Data source | Status |
 | --- | --- | --- | --- |
-| [**capacity-command**](apps/capacity-command) | A DP-700 operational simulator. Built for the Fabric community contest, Builder track. Runs as a static site for now; not yet on Rayfin. | Simulated, no external source | Built |
+| [**capacity-command**](apps/capacity-command) | A DP-700 operational simulator built with Rayfin on Fabric for the Fabric Apps community contest, Builder track. Its own telemetry pipeline is itself a DP-700 exercise. | Simulated, no external source | Live |
 | **wind-fingerprint** | Joins air quality measurements to wind direction so you can see where a station's pollution actually comes from. | EEA air quality | Planned |
 | **wake** | Explores maritime CO2 reporting under ETS and FuelEU, vessel by vessel. | THETIS-MRV | Planned |
 | **half-life** | Survival curves for vehicle registrations, the DAX-heavy one of the set. | RDW open vehicle registry | Planned |
@@ -44,7 +44,7 @@ FabricApps/
 │   │   ├── src/                frontend
 │   │   ├── package.json
 │   │   └── README.md           what it does, how to run it, what it taught me
-│   ├── capacity-command/       migrated in; static build, no rayfin/ yet
+│   ├── capacity-command/       Rayfin project deployed to Fabric; see its own README
 │   ├── wake/
 │   └── half-life/
 ├── docs/
@@ -133,9 +133,10 @@ preview, this section changes with it.
 
 ## What this is not
 
-Not a framework, not a starter template, and not production-hardened. No external users: deployed Fabric
-Apps authenticate through Fabric SSO only, so none of these can be shared outside a tenant. If you need
-anonymous or customer-facing access, you still need Power BI Embedded.
+Not a framework, not a starter template, and not production-hardened. Deployed Fabric Apps default to
+Fabric SSO only, so most of these cannot be shared outside a tenant without Power BI Embedded. The
+exception is `capacity-command`, whose guest mode works from a bare public link — see its README for the
+undocumented tenant-admin grant that made that possible.
 
 ## Questions
 

@@ -1,19 +1,16 @@
-// Profile tab: player name, exam date, progress, and local-data controls.
-// There is no account to sign out of, so the destructive action here clears
-// this browser's saved data instead.
+// Profile tab: player identity, exam date, sign out.
 import { useState } from 'react';
 
-import { WEEKS } from '@/game/campaign';
-import { exportTelemetry } from '@/game/telemetry';
+import { IconSignOut } from '@/components/bits';
 import type { PlayerProgress } from '@/game/progress';
 
 interface ProfileScreenProps {
   name: string;
+  email: string;
   initials: string;
   progress: PlayerProgress;
   onSetExamDate: (isoDate: string) => void;
-  onRename: (name: string) => void;
-  onReset: () => void;
+  onSignOut: () => void;
 }
 
 /** DD.MM.YYYY, per the app's date convention. */
@@ -22,29 +19,15 @@ function formatDate(isoDate: string): string {
   return `${d}.${m}.${y}`;
 }
 
-/** Offer the decision log as a JSON download, for analysis outside the app. */
-function downloadTelemetry(): void {
-  const blob = new Blob([exportTelemetry()], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'capacity-command-history.json';
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 export function ProfileScreen({
   name,
+  email,
   initials,
   progress,
   onSetExamDate,
-  onRename,
-  onReset,
+  onSignOut,
 }: ProfileScreenProps) {
   const [editingDate, setEditingDate] = useState(false);
-  const [editingName, setEditingName] = useState(false);
-  // Reset wipes everything, so it takes a second, deliberate click.
-  const [confirmingReset, setConfirmingReset] = useState(false);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-3">
@@ -53,38 +36,11 @@ export function ProfileScreen({
           {initials}
         </div>
         <div className="min-w-0 flex-1">
-          {editingName ? (
-            <input
-              type="text"
-              autoFocus
-              defaultValue={name}
-              maxLength={40}
-              aria-label="Display name"
-              onBlur={(e) => {
-                onRename(e.target.value);
-                setEditingName(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') e.currentTarget.blur();
-                if (e.key === 'Escape') setEditingName(false);
-              }}
-              className="w-full rounded-lg border border-line bg-bg px-2 py-1 font-display text-base text-ink"
-            />
-          ) : (
-            <div className="truncate font-display text-lg font-semibold leading-tight">
-              {name}
-            </div>
-          )}
-          <div className="truncate text-xs text-mute">
-            Playing as guest · saved in this browser
+          <div className="truncate font-display text-lg font-semibold leading-tight">
+            {name}
           </div>
-          <button
-            type="button"
-            onClick={() => setEditingName(true)}
-            className="mt-0.5 text-[11px] text-accent underline underline-offset-2 hover:text-accent-deep"
-          >
-            Change name
-          </button>
+          <div className="truncate text-xs text-mute">{email}</div>
+          <div className="text-[11px] text-soft">Platform admin · Nordwind Logistics</div>
         </div>
       </div>
 
@@ -127,39 +83,17 @@ export function ProfileScreen({
           Progress
         </div>
         <div className="mt-1 text-sm text-ink">
-          {progress.completedWeeks.length} of {WEEKS.length} campaign weeks
-          cleared
+          {progress.weeksCompleted} weeks completed
         </div>
-        <div className="text-xs text-mute">
-          {progress.weeksCompleted} weeks played, replays included
-        </div>
-        <button
-          type="button"
-          onClick={downloadTelemetry}
-          className="mt-2 text-xs text-accent underline underline-offset-2 hover:text-accent-deep"
-        >
-          Download decision history (JSON)
-        </button>
       </div>
 
       <button
         type="button"
-        onClick={() => {
-          if (confirmingReset) {
-            onReset();
-            setConfirmingReset(false);
-          } else {
-            setConfirmingReset(true);
-          }
-        }}
-        onBlur={() => setConfirmingReset(false)}
+        onClick={onSignOut}
         className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl border border-line py-2.5 text-sm text-shade transition-colors hover:border-bad hover:text-bad"
       >
-        {confirmingReset ? 'Tap again to erase everything' : 'Reset my progress'}
+        <IconSignOut size={16} /> Sign out
       </button>
-      <p className="mt-2 text-center text-xs text-soft">
-        Nothing leaves this browser. Clearing site data removes your progress.
-      </p>
     </div>
   );
 }

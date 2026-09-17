@@ -1,11 +1,8 @@
 // End-of-week report from the mockups: correct-percentage ring, CU/SLA
-// tiles, per-domain mastery, a review list of the week's decisions. The
-// report closes by naming the week this run just unlocked, so the campaign
-// leads straight into its next chapter.
+// tiles, per-domain mastery, a review list of the week's decisions.
 import { useState } from 'react';
 
 import { IconBack, Ring } from '@/components/bits';
-import { DecisionList } from '@/components/DecisionList';
 import { MasteryBars } from '@/components/MasteryBars';
 import { weekConfig, type WeekConfig } from '@/game/campaign';
 import { summarize } from '@/game/engine';
@@ -47,6 +44,7 @@ export function ReportScreen({
   const correctTotal = attempts.filter((a) => a.correct).length;
   const percent =
     attempts.length === 0 ? 0 : Math.round((correctTotal / attempts.length) * 100);
+  const byCode = new Map(scenarios.map((s) => [s.code, s]));
   const week = weekConfig(weekNumber);
 
   return (
@@ -120,12 +118,38 @@ export function ReportScreen({
         </div>
         <MasteryBars entries={summarize(attempts)} />
 
-        {reviewing && <DecisionList attempts={attempts} scenarios={scenarios} />}
+        {reviewing && (
+          <ul className="mt-4 flex flex-col gap-1.5">
+            {attempts.map((a, i) => (
+              <li
+                key={`${a.scenarioCode}-${i}`}
+                className="flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2"
+              >
+                <span
+                  className={`font-display text-sm font-semibold ${
+                    a.correct ? 'text-accent' : 'text-bad'
+                  }`}
+                >
+                  {a.correct ? '✓' : '✕'}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-xs text-ink">
+                    {byCode.get(a.scenarioCode)?.title ?? a.scenarioCode}
+                  </span>
+                  <span className="block text-[10px] text-soft">
+                    Picked {a.chosenOptionKey} · {a.cuCost} CU ·{' '}
+                    {a.slaDelta > 0 ? `+${a.slaDelta}` : a.slaDelta} SLA
+                  </span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       <div className="flex flex-col gap-2 px-5 pb-5 pt-2">
         {unlockedWeek && (
-          <p className="text-center text-[11px] text-accent" data-testid="report-unlocked">
+          <p className="text-center text-[11px] text-accent">
             Week {unlockedWeek.number} unlocked: {unlockedWeek.title}
           </p>
         )}

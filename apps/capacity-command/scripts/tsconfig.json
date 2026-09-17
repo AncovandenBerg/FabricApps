@@ -1,12 +1,11 @@
 {
   "extends": "../tsconfig.json",
   "compilerOptions": {
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "ESNext.Decorators"],
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "types": ["node"],
-    "paths": {},
-    "jsx": "preserve"
+    "paths": {}
   },
-  "include": ["**/*.ts", "../src/game/validate.ts"]
+  "include": ["**/*.ts"]
 }

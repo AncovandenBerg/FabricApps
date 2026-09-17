@@ -26,11 +26,6 @@ export interface GameScenario {
 /** One decision, mirroring the AttemptEvent entity contract. */
 export interface AttemptRecord {
   scenarioCode: string;
-  /**
-   * Campaign week the decision was made in. Denormalized onto the attempt
-   * on purpose: mastery can be sliced per week without joining back to the
-   * scenario or the session, so the analytics table stays readable alone.
-   */
   weekNumber: number;
   domain: string;
   objective: string;

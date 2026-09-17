@@ -1,34 +1,14 @@
-// Stats tab: lifetime readiness, plus the per-week curve across the
-// campaign. The curve is the point of tracking a best result per week:
-// a single lifetime average hides whether the harder later weeks are
-// actually landing.
+// Stats tab: lifetime readiness across all completed weeks.
 import { Ring } from '@/components/bits';
 import { MasteryBars } from '@/components/MasteryBars';
 import { WEEKS } from '@/game/campaign';
 import { readinessPercent, type PlayerProgress } from '@/game/progress';
-
-/** Best-run correct percentage per configured week, weeks unplayed omitted. */
-function weekCurve(progress: PlayerProgress) {
-  return WEEKS.map((week) => {
-    const best = progress.weekResults[week.number];
-    return {
-      week,
-      best,
-      percentage:
-        best && best.total > 0
-          ? Math.round((best.correct / best.total) * 100)
-          : null,
-    };
-  });
-}
 
 export function StatsScreen({ progress }: { progress: PlayerProgress }) {
   const readiness = readinessPercent(progress);
   const totals = Object.values(progress.domainTotals);
   const decisions = totals.reduce((n, t) => n + t.total, 0);
   const correct = totals.reduce((n, t) => n + t.correct, 0);
-  const curve = weekCurve(progress);
-  const played = curve.filter((entry) => entry.percentage !== null);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-6 pt-3">
@@ -57,11 +37,14 @@ export function StatsScreen({ progress }: { progress: PlayerProgress }) {
             <div className="flex flex-1 flex-col gap-2">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.1em] text-mute">
-                  Weeks cleared
+                  Campaign
                 </div>
                 <div className="font-display text-2xl font-semibold leading-none">
                   {progress.completedWeeks.length}
-                  <span className="text-base text-soft"> / {WEEKS.length}</span>
+                  <span className="text-base text-soft">
+                    {' '}
+                    / {WEEKS.length} weeks cleared
+                  </span>
                 </div>
               </div>
               <div>
@@ -88,46 +71,36 @@ export function StatsScreen({ progress }: { progress: PlayerProgress }) {
             }))}
           />
 
-          {/* Per-week curve: best run per week, in campaign order */}
-          <div className="mb-2.5 mt-5 flex items-baseline justify-between">
-            <div className="text-[9px] uppercase tracking-[0.12em] text-mute">
-              Best run per week
-            </div>
-            <div className="text-[11px] text-soft">
-              {played.length}/{WEEKS.length} played
-            </div>
+          <div className="mb-2.5 mt-5 text-[9px] uppercase tracking-[0.12em] text-mute">
+            Best run per week
           </div>
-          <div className="flex flex-col gap-3" data-testid="week-curve">
-            {curve.map(({ week, best, percentage }) => (
-              <div key={week.number}>
-                <div className="mb-1.5 flex items-baseline justify-between text-xs">
-                  <span className="min-w-0 truncate text-ink">
-                    W{week.number} · {week.title}
-                  </span>
-                  {percentage === null ? (
-                    <span className="flex-none text-[10px] text-soft">
-                      not played
+          <ul className="flex flex-col gap-1.5">
+            {WEEKS.map((week) => {
+              const best = progress.weekResults[week.number];
+              return (
+                <li
+                  key={week.number}
+                  className="flex items-center gap-2.5 rounded-xl border border-line bg-surface px-3 py-2"
+                >
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-xs text-ink">
+                      Week {week.number} · {week.title}
                     </span>
-                  ) : (
-                    <span className="flex-none font-semibold text-shade">
-                      {percentage}%{' '}
-                      <span className="text-[10px] font-normal text-soft">
-                        {best?.correct}/{best?.total} · {best?.cu} CU
-                      </span>
+                    <span className="block text-[10px] text-soft">
+                      {best
+                        ? `${best.correct}/${best.total} correct · ${best.cu} CU left · SLA ${best.sla}`
+                        : 'Not completed yet'}
+                    </span>
+                  </span>
+                  {best && (
+                    <span className="font-display text-sm font-semibold text-accent">
+                      {Math.round((best.correct / Math.max(1, best.total)) * 100)}%
                     </span>
                   )}
-                </div>
-                <div className="h-1.5 rounded-full bg-track">
-                  <div
-                    className={`h-full rounded-full ${
-                      percentage === null ? 'bg-track' : 'bg-accent'
-                    }`}
-                    style={{ width: `${percentage ?? 0}%` }}
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+                </li>
+              );
+            })}
+          </ul>
         </>
       )}
     </div>

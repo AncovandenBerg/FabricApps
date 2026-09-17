@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { DomainDot } from '@/components/bits';
-import { BreachScreen } from '@/components/BreachScreen';
+import { DomainDot, IconSignOut } from '@/components/bits';
 import { FeedbackPanel } from '@/components/FeedbackPanel';
 import { HomeScreen } from '@/components/HomeScreen';
 import { ProfileScreen } from '@/components/ProfileScreen';
@@ -11,7 +10,6 @@ import { TabBar, type Tab } from '@/components/TabBar';
 import { WeekMap } from '@/components/WeekMap';
 import { isWeekUnlocked, nextWeek, weekAfter, WEEKS } from '@/game/campaign';
 import { loadScenarios, type ScenarioLoader } from '@/game/data';
-import { resolveWeekLink } from '@/game/deepLink';
 import { domainMeta } from '@/game/domains';
 import {
   advance,
@@ -23,7 +21,6 @@ import {
   type GameState,
 } from '@/game/engine';
 import {
-  emptyProgress,
   loadProgress,
   recordWeek,
   saveProgress,
@@ -31,25 +28,15 @@ import {
 } from '@/game/progress';
 import { createTelemetry, type GameTelemetry } from '@/game/telemetry';
 import type { GameScenario } from '@/game/types';
-import { usePlayer } from '@/hooks/usePlayer';
+import { useAuth } from '@/hooks/AuthContext';
 
 interface GamePageProps {
   /** Injection points for tests; real implementations are the default. */
   loader?: ScenarioLoader;
   telemetry?: GameTelemetry;
-  /**
-   * Query string to read the `?week=<n>` deep link from. Defaults to the real
-   * one; tests pass a literal so they never touch `window.location`.
-   */
-  search?: string;
 }
 
-type Screen = 'tabs' | 'incident' | 'report' | 'breach';
-
-/** The two screens that own the whole viewport, header and tab bar included. */
-function isEndScreen(screen: Screen): boolean {
-  return screen === 'report' || screen === 'breach';
-}
+type Screen = 'tabs' | 'incident' | 'report';
 
 function initials(name: string): string {
   return name
@@ -100,12 +87,8 @@ function StatusStrip({ game }: { game: GameState }) {
   );
 }
 
-export function GamePage({
-  loader,
-  telemetry: telemetryProp,
-  search,
-}: GamePageProps) {
-  const { player, rename, reset } = usePlayer();
+export function GamePage({ loader, telemetry: telemetryProp }: GamePageProps) {
+  const { user, signOut } = useAuth();
   const telemetry = useMemo(
     () => telemetryProp ?? createTelemetry(),
     [telemetryProp]
@@ -120,15 +103,13 @@ export function GamePage({
 
   const sessionIdRef = useRef<string | null>(null);
   const shownAtRef = useRef<number>(Date.now());
-  /** A deep link is a one-time instruction, not standing state. */
-  const weekLinkHandledRef = useRef(false);
 
   const persist = useCallback(
     (next: PlayerProgress) => {
       setProgress(next);
-      saveProgress(player.id, next);
+      if (user) saveProgress(user.id, next);
     },
-    [player.id]
+    [user]
   );
 
   const saveActive = useCallback(
@@ -145,9 +126,9 @@ export function GamePage({
     let cancelled = false;
     (loader ?? loadScenarios)()
       .then((loaded) => {
-        if (cancelled) return;
+        if (cancelled || !user) return;
         setScenarios(loaded);
-        const stored = loadProgress(player.id);
+        const stored = loadProgress(user.id);
         // Resume a week that was in flight when the page last closed
         if (stored.active) {
           const restored = restoreGame(stored.active.game, loaded);
@@ -183,47 +164,18 @@ export function GamePage({
       setGame(fresh);
       setTab('map');
       setScreen('tabs');
-      sessionIdRef.current = await telemetry.startSession(player.id, {
-        weekNumber: fresh.week,
-        startingCu: fresh.startingCu,
-        startingSla: fresh.startingSla,
-        startingDay: fresh.day,
-      });
+      sessionIdRef.current = user
+        ? await telemetry.startSession(user.id, {
+            weekNumber: fresh.week,
+            startingCu: fresh.startingCu,
+            startingSla: fresh.startingSla,
+            startingDay: fresh.day,
+          })
+        : null;
       saveActive(fresh, { ...progress, active: undefined });
     },
-    [scenarios, progress, telemetry, player.id, saveActive]
+    [scenarios, progress, telemetry, user, saveActive]
   );
-
-  /**
-   * Act on a `?week=<n>` link once the save file is known.
-   *
-   * It has to wait for `progress`, because whether a week is unlocked — and
-   * whether one is already in flight — is exactly what decides the answer.
-   * Both are set in the same tick by the loader above, so by the time
-   * `progress` is non-null a resumed `game` is already in state and this
-   * cannot mistake a resumable week for an idle app.
-   *
-   * The ref makes it fire once. Without it, finishing the linked week would
-   * re-run this and start it again, which is a loop rather than a feature.
-   * Every refusal simply falls through to the normal home screen, where the
-   * week list shows what is actually open.
-   */
-  useEffect(() => {
-    if (weekLinkHandledRef.current || !scenarios || !progress) return;
-    weekLinkHandledRef.current = true;
-
-    const action = resolveWeekLink(
-      search ?? window.location.search,
-      { completedWeeks: progress.completedWeeks, activeWeek: game?.week ?? null }
-    );
-
-    if (action.kind === 'start') {
-      void beginSession(action.week);
-    } else if (action.kind === 'resume') {
-      setTab('map');
-      setScreen('tabs');
-    }
-  }, [scenarios, progress, game, search, beginSession]);
 
   const handleStartOrResume = () => {
     if (game) {
@@ -261,8 +213,8 @@ export function GamePage({
     saveActive(next, progress);
 
     const sessionId = sessionIdRef.current;
-    if (sessionId && next.lastAttempt) {
-      void telemetry.recordAttempt(sessionId, player.id, next.lastAttempt);
+    if (sessionId && user && next.lastAttempt) {
+      void telemetry.recordAttempt(sessionId, user.id, next.lastAttempt);
       void telemetry.syncSession(sessionId, {
         cuRemaining: next.cu,
         slaScore: next.sla,
@@ -276,26 +228,18 @@ export function GamePage({
     const next = advance(game);
     setGame(next);
 
-    // Both terminal phases end the session and clear the in-flight save. A
-    // breach differs only in what it records: the week is not cleared, so
-    // nothing new unlocks.
-    if (next.phase === 'summary' || next.phase === 'breach') {
-      const outcome = next.phase === 'breach' ? 'breached' : 'completed';
+    if (next.phase === 'summary') {
       persist(
-        recordWeek(progress, next.week, next.attempts, next.cu, next.sla, outcome)
+        recordWeek(progress, next.week, next.attempts, next.cu, next.sla)
       );
-      setScreen(next.phase === 'breach' ? 'breach' : 'report');
+      setScreen('report');
       const sessionId = sessionIdRef.current;
       if (sessionId) {
-        void telemetry.completeSession(
-          sessionId,
-          {
-            cuRemaining: next.cu,
-            slaScore: next.sla,
-            currentDay: next.day,
-          },
-          outcome
-        );
+        void telemetry.completeSession(sessionId, {
+          cuRemaining: next.cu,
+          slaScore: next.sla,
+          currentDay: next.day,
+        });
       }
       sessionIdRef.current = null;
     } else {
@@ -305,8 +249,7 @@ export function GamePage({
     }
   };
 
-  /** Leaving either end screen drops the finished run and returns to the tabs. */
-  const handleEndScreenHome = () => {
+  const handleReportHome = () => {
     setGame(null);
     setScreen('tabs');
     setTab('home');
@@ -316,22 +259,12 @@ export function GamePage({
     if (progress) persist({ ...progress, examDate: isoDate });
   };
 
-  /** Wipe this browser's data and drop back to a fresh home screen. */
-  const handleReset = () => {
-    reset();
-    sessionIdRef.current = null;
-    setGame(null);
-    setProgress(emptyProgress());
-    setScreen('tabs');
-    setTab('home');
-  };
-
   if (loadError) {
     return (
       <div className="flex min-h-screen items-center justify-center p-4">
         <div className="max-w-sm rounded-2xl border border-bad/50 bg-surface p-5 shadow-card">
           <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-bad">
-            Content unavailable
+            Connection lost
           </p>
           <p className="mt-2 text-sm text-shade">
             Could not load the week&apos;s incidents.
@@ -342,7 +275,7 @@ export function GamePage({
     );
   }
 
-  if (!scenarios || !progress) {
+  if (!scenarios || !progress || !user) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <p className="text-sm text-mute">
@@ -362,10 +295,10 @@ export function GamePage({
   return (
     <div className="flex min-h-screen justify-center bg-canvas">
       <div className="flex min-h-screen w-full max-w-[420px] flex-col border-x border-line bg-bg">
-        {!isEndScreen(screen) && (
+        {screen !== 'report' && (
           <header className="flex items-center gap-2.5 px-5 pb-2 pt-4">
             <div className="flex h-9 w-9 flex-none items-center justify-center rounded-full border border-line bg-surface font-display text-sm font-semibold text-accent">
-              {initials(player.name)}
+              {initials(user.name)}
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 font-display text-base font-semibold leading-tight">
@@ -373,27 +306,20 @@ export function GamePage({
                 Capacity Command
               </div>
               <div className="truncate text-[11px] text-mute">
-                {player.name} · Platform admin
+                {user.name} · Platform admin
               </div>
             </div>
+            <button
+              onClick={() => void signOut()}
+              aria-label="Sign out"
+              className="text-soft transition-colors hover:text-shade"
+            >
+              <IconSignOut size={18} />
+            </button>
           </header>
         )}
 
-        {screen === 'breach' && game?.breach ? (
-          <BreachScreen
-            weekNumber={game.week}
-            day={game.day}
-            weekLength={game.weekLength}
-            sla={game.sla}
-            breach={game.breach}
-            attempts={game.attempts}
-            remaining={game.pending.length + game.chained.length}
-            alreadyCleared={progress.completedWeeks.includes(game.week)}
-            scenarios={scenarios}
-            onReplay={(week) => void beginSession(week)}
-            onHome={handleEndScreenHome}
-          />
-        ) : screen === 'report' && game ? (
+        {screen === 'report' && game ? (
           <ReportScreen
             weekNumber={game.week}
             cu={game.cu}
@@ -402,7 +328,7 @@ export function GamePage({
             scenarios={scenarios}
             unlockedWeek={weekAfter(game.week, progress.completedWeeks)}
             onPlayWeek={(week) => void beginSession(week)}
-            onHome={handleEndScreenHome}
+            onHome={handleReportHome}
           />
         ) : screen === 'incident' && game?.current ? (
           <>
@@ -459,7 +385,6 @@ export function GamePage({
                       scenario={game.current}
                       attempt={game.lastAttempt}
                       hasFollowUp={game.chained.length > 0}
-                      breached={game.breach !== null}
                       onContinue={handleContinue}
                     />
                   </div>
@@ -471,7 +396,7 @@ export function GamePage({
           <>
             {tab === 'home' && (
               <HomeScreen
-                firstName={player.name.split(/\s+/)[0]}
+                firstName={user.name.split(/\s+/)[0]}
                 progress={progress}
                 activeGame={game}
                 nextWeek={upcoming}
@@ -510,12 +435,12 @@ export function GamePage({
             {tab === 'stats' && <StatsScreen progress={progress} />}
             {tab === 'profile' && (
               <ProfileScreen
-                name={player.name}
-                initials={initials(player.name)}
+                name={user.name}
+                email={user.email || 'Shared-link guest'}
+                initials={initials(user.name)}
                 progress={progress}
                 onSetExamDate={handleSetExamDate}
-                onRename={rename}
-                onReset={handleReset}
+                onSignOut={() => void signOut()}
               />
             )}
             <TabBar active={tab} onSelect={setTab} />

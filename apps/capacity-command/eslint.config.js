@@ -6,10 +6,7 @@ import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
   {
-    // `schema/` is the entity schema contract for a backend this repo does
-    // not have: it is written against @microsoft/rayfin-core, which is not a
-    // dependency here, and is never built or imported. See schema/README.md.
-    ignores: ['dist', 'node_modules', 'schema'],
+    ignores: ['dist', 'node_modules', '.rush', 'rush-logs', 'rayfin/.temp'],
   },
   {
     files: ['**/*.{ts,tsx}'],
@@ -32,13 +29,6 @@ export default tseslint.config(
         'warn',
         { argsIgnorePattern: '^_', varsIgnorePattern: '^_' },
       ],
-    },
-  },
-  {
-    // Build-time tooling runs under Node, not in the browser.
-    files: ['scripts/**/*.ts', '*.config.ts'],
-    languageOptions: {
-      globals: globals.node,
     },
   }
 );

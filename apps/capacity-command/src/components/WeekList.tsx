@@ -1,7 +1,6 @@
 // Campaign overview: every configured week with its lock state and best
 // result. Weeks unlock in order, so a locked row says which week opens it.
-// The list is driven entirely by seed/campaign.json, so a fourth week shows
-// up here as soon as it is added to that file.
+// The list is driven entirely by seed/campaign.json.
 import { IconCheck, IconLock, IconPlay } from '@/components/bits';
 import { isWeekUnlocked, WEEKS } from '@/game/campaign';
 import type { PlayerProgress } from '@/game/progress';
@@ -30,9 +29,6 @@ export function WeekList({
         const unlocked = isWeekUnlocked(week.number, progress.completedWeeks);
         const done = progress.completedWeeks.includes(week.number);
         const best = progress.weekResults[week.number];
-        // Only worth saying while the week is still unbeaten. Once it is
-        // cleared, the best result is the more useful thing to show.
-        const breaches = done ? 0 : (progress.weekBreaches[week.number] ?? 0);
         const incidents = incidentCounts[week.number] ?? 0;
         const isCurrent = week.number === currentWeek;
         const previous = WEEKS[index - 1];
@@ -76,19 +72,15 @@ export function WeekList({
                   {week.title}
                 </span>
                 <span
-                  className={`block text-[11px] ${
-                    abandons || breaches > 0 ? 'text-bad' : 'text-mute'
-                  }`}
+                  className={`block text-[11px] ${abandons ? 'text-bad' : 'text-mute'}`}
                 >
                   {!unlocked
                     ? `Finish week ${previous?.number ?? week.number - 1} to unlock`
                     : abandons
                       ? `Starts fresh, drops week ${activeWeek} in progress`
-                      : breaches > 0
-                        ? `Out of capacity ${breaches === 1 ? 'once' : `${breaches} times`} · ${week.days} days · ${week.startingCu} CU`
-                        : best
-                          ? `Best ${best.correct}/${best.total} · ${week.days} days · ${week.startingCu} CU`
-                          : `${week.days} days · ${incidents} incidents · ${week.startingCu} CU`}
+                      : best
+                        ? `Best ${best.correct}/${best.total} · ${week.days} days · ${week.startingCu} CU`
+                        : `${week.days} days · ${incidents} incidents · ${week.startingCu} CU`}
                 </span>
               </span>
             </button>

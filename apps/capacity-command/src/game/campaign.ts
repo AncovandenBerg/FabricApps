@@ -1,13 +1,10 @@
 // Campaign structure: which weeks exist and how each is balanced.
 //
-// The single source of truth is seed/campaign.json, which scripts/seed.ts
-// reads as well, so structure and content cannot drift. To add, remove or
-// rebalance a week, edit that file; nothing here changes. Scenario content
-// lives in seed/scenarios.json, where every scenario carries a `week` field
-// matching a `number` below.
-//
-// Nothing in this module hardcodes a week count, a week length or a
-// starting budget: every one of those comes out of the JSON.
+// The single source of truth is seed/campaign.json, which is also read by
+// the seed scripts so content and structure cannot drift. To add, remove or
+// rebalance a week, edit that file; nothing here needs changing. Scenario
+// content lives in seed/scenarios.json, where every scenario carries a
+// `week` field matching a `number` below.
 
 import campaignJson from '../../seed/campaign.json';
 

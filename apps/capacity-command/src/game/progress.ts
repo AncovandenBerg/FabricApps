@@ -1,11 +1,9 @@
 // Local, per-player progress that outlives a page load: the running week
-// (so it can be resumed), which campaign weeks are cleared, the best result
-// per week, lifetime per-domain tallies and the exam date for the countdown
-// card. Telemetry (Session, AttemptEvent) stays the analytical source of
-// truth; this is UX state.
+// (so it can be resumed), lifetime per-domain tallies, weeks completed,
+// and the exam date for the countdown card. Backend telemetry (Session,
+// AttemptEvent) stays the analytical source of truth; this is UX state.
 
 import type { SavedGame } from './engine';
-
 import type { AttemptRecord } from './types';
 
 export interface DomainTally {
@@ -26,9 +24,6 @@ export interface WeekResult {
   sla: number;
 }
 
-/** How a run ended. A breach is a week lost to running out of capacity. */
-export type WeekOutcome = 'completed' | 'breached';
-
 export interface PlayerProgress {
   /** Weeks finished, counting replays. Lifetime activity, not progression. */
   weeksCompleted: number;
@@ -36,8 +31,6 @@ export interface PlayerProgress {
   completedWeeks: number[];
   /** Best result per campaign week, keyed by week number. */
   weekResults: Record<number, WeekResult>;
-  /** Times each week has been lost to a capacity breach, keyed by week. */
-  weekBreaches: Record<number, number>;
   domainTotals: Record<string, DomainTally>;
   /** ISO date (yyyy-mm-dd) of the planned DP-700 exam, if the player set one. */
   examDate?: string;
@@ -48,7 +41,6 @@ const EMPTY: PlayerProgress = {
   weeksCompleted: 0,
   completedWeeks: [],
   weekResults: {},
-  weekBreaches: {},
   domainTotals: {},
 };
 
@@ -56,12 +48,6 @@ function storageKey(userId: string): string {
   return `capacity-command:${userId}`;
 }
 
-/**
- * Read this player's progress, upgrading anything saved by an earlier build
- * rather than discarding it. Progress from before the campaign existed only
- * knew "week 1, replayed N times", so a non-zero count means week 1 was
- * cleared and week 2 should be unlocked on the player's next visit.
- */
 export function loadProgress(userId: string): PlayerProgress {
   try {
     const raw = localStorage.getItem(storageKey(userId));
@@ -70,9 +56,11 @@ export function loadProgress(userId: string): PlayerProgress {
     const weeksCompleted = parsed.weeksCompleted ?? 0;
     return {
       weeksCompleted,
-      completedWeeks: parsed.completedWeeks ?? (weeksCompleted > 0 ? [1] : []),
+      // Progress saved before the campaign existed only knew "week 1,
+      // replayed N times", so a non-zero count means week 1 was finished.
+      completedWeeks:
+        parsed.completedWeeks ?? (weeksCompleted > 0 ? [1] : []),
       weekResults: parsed.weekResults ?? {},
-      weekBreaches: parsed.weekBreaches ?? {},
       domainTotals: parsed.domainTotals ?? {},
       examDate: parsed.examDate,
       active: parsed.active,
@@ -92,21 +80,15 @@ export function saveProgress(userId: string, progress: PlayerProgress): void {
 
 /**
  * Fold a finished week into lifetime history, mark that campaign week
- * cleared (which unlocks the next one) and clear the active week. Cleared
- * weeks stay replayable, and a replay keeps whichever result was better.
- *
- * A breached week is a week lost, so it clears nothing and unlocks nothing:
- * only the breach count and the domain tallies are kept. Keeping the tallies
- * is deliberate. The decisions were still made and still say something about
- * what the player knows, so a lost week still moves the readiness figure.
+ * completed (which unlocks the next one) and clear the active week.
+ * Replaying a week keeps the better result.
  */
 export function recordWeek(
   progress: PlayerProgress,
   weekNumber: number,
   attempts: AttemptRecord[],
   finalCu: number,
-  finalSla: number,
-  outcome: WeekOutcome = 'completed'
+  finalSla: number
 ): PlayerProgress {
   const domainTotals: Record<string, DomainTally> = { ...progress.domainTotals };
   for (const a of attempts) {
@@ -114,18 +96,6 @@ export function recordWeek(
     domainTotals[a.domain] = {
       total: t.total + 1,
       correct: t.correct + (a.correct ? 1 : 0),
-    };
-  }
-
-  if (outcome === 'breached') {
-    return {
-      ...progress,
-      weekBreaches: {
-        ...progress.weekBreaches,
-        [weekNumber]: (progress.weekBreaches[weekNumber] ?? 0) + 1,
-      },
-      domainTotals,
-      active: undefined,
     };
   }
 
@@ -170,18 +140,4 @@ export function daysToExam(progress: PlayerProgress, now: Date): number | null {
   const exam = new Date(`${progress.examDate}T00:00:00`);
   const days = Math.ceil((exam.getTime() - now.getTime()) / 86_400_000);
   return Number.isFinite(days) && days >= 0 ? days : null;
-}
-
-/** Erase a player's saved progress (used by the reset action in the profile). */
-export function clearProgress(userId: string): void {
-  try {
-    localStorage.removeItem(storageKey(userId));
-  } catch {
-    // Nothing to clean up when storage is unavailable.
-  }
-}
-
-/** A fresh, empty progress record (used after a reset). */
-export function emptyProgress(): PlayerProgress {
-  return structuredClone(EMPTY);
 }

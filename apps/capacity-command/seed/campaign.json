@@ -1,7 +1,7 @@
 {
   "meta": {
     "game": "Capacity Command",
-    "notes": "Campaign structure: which weeks exist, how long each runs and what budget the player starts with. This is the file to edit when adding, removing or rebalancing a week. Scenario content lives in scenarios.json; every scenario there carries a `week` field that must match a `number` below. Weeks unlock in order: week N+1 becomes playable once week N is completed. A week's startingCu must exceed what perfect play costs, or the week cannot be finished: running out of capacity ends the run. `npm run seed` enforces that. What tightens across the campaign is the headroom, not the number: 43% spare in week 1, 24% in week 2, 14% in week 3."
+    "notes": "Campaign structure: which weeks exist, how long each runs and what budget the player starts with. This is the file to edit when adding, removing or rebalancing a week. Scenario content lives in scenarios.json; every scenario there carries a `week` field that must match a `number` below. Weeks unlock in order: week N+1 becomes playable once week N is completed."
   },
   "weeks": [
     {
@@ -17,7 +17,7 @@
       "title": "Peak season",
       "subtitle": "Peak season. Parcel volumes are six times normal, finance froze the capacity budget, and every shortcut you took in week 1 is now load bearing.",
       "days": 7,
-      "startingCu": 130,
+      "startingCu": 90,
       "startingSla": 100
     },
     {
@@ -25,7 +25,7 @@
       "title": "The merger",
       "subtitle": "Nordwind has absorbed a Belgian carrier. Two platforms, two engineering teams, one capacity, and a set of auditors who want everything documented.",
       "days": 7,
-      "startingCu": 160,
+      "startingCu": 80,
       "startingSla": 100
     }
   ]
