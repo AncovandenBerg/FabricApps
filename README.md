@@ -15,7 +15,7 @@
 | App | What it does | Data source | Status |
 | --- | --- | --- | --- |
 | [**capacity-command**](apps/capacity-command) | A DP-700 operational simulator built with Rayfin on Fabric for the Fabric Apps community contest, Builder track. Its own telemetry pipeline is itself a DP-700 exercise. | Simulated, no external source | Live |
-| **wind-fingerprint** | Joins air quality measurements to wind direction so you can see where a station's pollution actually comes from. | EEA air quality | Planned |
+| [**windfingerprint**](apps/windfingerprint) | Joins air quality measurements to wind direction so you can see where a station's pollution actually comes from. | EEA air quality + Open-Meteo wind | Live |
 | **wake** | Explores maritime CO2 reporting under ETS and FuelEU, vessel by vessel. | THETIS-MRV | Planned |
 | **half-life** | Survival curves for vehicle registrations, the DAX-heavy one of the set. | RDW open vehicle registry | Planned |
 
@@ -36,7 +36,7 @@ These are deliberately small apps on public data. The point is the pattern, not 
 ```text
 FabricApps/
 ├── apps/
-│   ├── wind-fingerprint/       one Rayfin project per app
+│   ├── windfingerprint/        one Rayfin project per app
 │   │   ├── rayfin/
 │   │   │   ├── data/           entity definitions and schema.ts
 │   │   │   ├── rayfin.yml      service configuration
@@ -86,7 +86,7 @@ Full walkthrough in [docs/setup.md](docs/setup.md).
 
 ```bash
 git clone https://github.com/AncovandenBerg/FabricApps.git
-cd FabricApps/apps/wind-fingerprint
+cd FabricApps/apps/windfingerprint
 npm install
 cp rayfin/.env.example rayfin/.env
 npm run dev
