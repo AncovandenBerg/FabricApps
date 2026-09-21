@@ -5,8 +5,6 @@
 
 ![WindFingerprint's HomePage for Hoek van Holland-Berghaven, NO2: a station picker and readout panel on the left, the bivariate polar plot and CPF rose side by side, and the CPF rose overlaid on a real OpenStreetMap view below, pointing east into the town from the station.](../../docs/img/windfingerprint.png)
 
-**Live app:** https://jazzy-dew-2f6bffac4d-westeurope.webapp.fabricapps.net
-
 ## What it does
 
 Air quality monitoring stations report *how much* pollution is in the air, but not *where it's coming
