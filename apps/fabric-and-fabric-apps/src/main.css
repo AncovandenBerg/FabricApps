@@ -1,0 +1,43 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  /* Palette pulled directly from Microsoft Fabric's own product mark —
+     not an arbitrary brand, the actual gradient stops of the Fabric logo. */
+  --color-canvas: #f6f9f8;
+  --color-ink: #10241f;
+  /* Solid muted text for kickers/secondary copy — projectors render alpha-ink
+     as "dark" or "gone", not subtlety, so this is a real color, not an opacity. */
+  --color-ink-muted: #4a5f59;
+  --color-teal-700: #0e6961;
+  --color-teal-500: #177e71;
+  --color-mint-400: #4fd8b8;
+  --color-sky-300: #8fe0f5;
+  --color-line: #dceae6;
+
+  --color-blue-50: oklch(0.97 0.014 254.6);
+  --color-blue-100: oklch(0.932 0.032 255.6);
+  --color-blue-500: oklch(0.623 0.214 259.1);
+  --color-blue-600: oklch(0.546 0.245 262.9);
+  --color-blue-700: oklch(0.488 0.243 264.4);
+
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
