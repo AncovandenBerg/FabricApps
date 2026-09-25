@@ -1,0 +1,82 @@
+@import 'tailwindcss';
+
+/*
+ * Capacity Command design tokens: the "Classical" light theme from the
+ * DP-700 Prep mockups. Warm paper surfaces, serif typography (Cormorant
+ * Garamond display, Lora body), one accent color. Exam domains are told
+ * apart by dot SHAPE (filled / outline / donut), never by color, so the
+ * single-accent palette stays colorblind-safe by construction. Status
+ * colors (good/bad) are reserved for decision verdicts and always ship
+ * with a text label.
+ */
+@theme {
+  --color-canvas: #e7e5e2;
+  --color-bg: #faf8f4;
+  --color-surface: #ffffff;
+  --color-line: #e5dfd5;
+
+  --color-ink: #26221c;
+  --color-shade: #57503f;
+  --color-mute: #746a5c;
+  --color-soft: #94897a;
+  --color-track: #eae4da;
+
+  --color-accent: #3f6b54;
+  --color-accent-deep: #2e523f;
+  --color-tint: #e6eee8;
+
+  --color-good: #3f6b54;
+  --color-bad: #b3402e;
+  --color-bad-tint: #f6e5e1;
+
+  --font-sans: 'Lora', Georgia, 'Times New Roman', serif;
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+
+  --shadow-card: 0 1px 2px rgb(38 34 28 / 0.05), 0 4px 14px rgb(38 34 28 / 0.06);
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-line, currentColor);
+  }
+
+  html {
+    background-color: var(--color-canvas);
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::selection {
+    background-color: var(--color-accent);
+    color: #ffffff;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+
+  @keyframes cc-pulse {
+    0% {
+      transform: scale(1);
+      opacity: 0.55;
+    }
+    70% {
+      transform: scale(1.85);
+      opacity: 0;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+}

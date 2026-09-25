@@ -1,0 +1,63 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+.yarn/
+
+# Environment files. Never commit a real one. Examples are committed on purpose.
+.env
+.env.*
+**/rayfin/.env
+**/rayfin/.env.*
+**/.env.fabric
+**/.env.fabric-*
+!**/.env.example
+!**/rayfin/.env.example
+# GitHub Pages showcase build config -- no secrets, committed on purpose.
+!**/.env.pages
+
+# Rayfin generated artefacts
+**/rayfin/.temp/
+
+# Build output
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# Local data downloads and extracts. Document the source, do not commit the data.
+data/
+**/data/raw/
+*.csv
+*.tsv
+*.parquet
+*.xlsx
+*.zip
+*.gz
+*.db
+*.sqlite
+
+# Demo recordings and other large media. Link to them instead.
+*.mp4
+*.mov
+*.avi
+
+# Certificates and key material, in case a tool drops one here
+*.pem
+*.pfx
+*.key
+*.p12
+
+# Editor and OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs and scratch
+*.log
+npm-debug.log*
+*.bak
+*.tmp
+.scratch/
