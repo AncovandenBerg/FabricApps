@@ -1,7 +1,21 @@
+import { POLLUTANT_INFO } from '@/lib/windFingerprint/pollutants';
 import type { Station } from '@/lib/windFingerprint/stations';
 import type { Pollutant } from '@/lib/windFingerprint/types';
 
 const POLLUTANTS: Pollutant[] = ['NO2', 'PM10', 'PM2.5'];
+
+const STATION_TYPE_HINT: Record<Station['type'], string> = {
+  traffic: 'Right next to a busy road -- picks up exhaust fumes directly',
+  industrial: 'Near factories or industry',
+  background: "General air quality, away from any one big source",
+};
+
+const STATION_AREA_HINT: Record<string, string> = {
+  urban: 'In a city or town',
+  suburban: 'Just outside a city',
+  rural: 'Out in the countryside',
+  unknown: 'Area type not recorded',
+};
 
 const selectClasses =
   'w-full appearance-none rounded-sm border border-ink/20 bg-panel px-3 py-2 pr-8 font-mono text-sm text-ink outline-none transition-colors focus:border-rust focus:ring-2 focus:ring-rust/15';
@@ -61,29 +75,38 @@ export function StationPicker({
         </div>
       </label>
 
-      <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium text-ink-soft">Pollutant</span>
-        <div className="relative">
-          <select
-            className={selectClasses}
-            value={pollutant}
-            onChange={(event) => onPollutantChange(event.target.value as Pollutant)}
-          >
-            {POLLUTANTS.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-          <ChevronDown />
-        </div>
-      </label>
+      <div className="flex flex-col gap-1.5 text-sm">
+        <label className="flex flex-col gap-1.5">
+          <span className="font-medium text-ink-soft">Pollution type</span>
+          <div className="relative">
+            <select
+              className={selectClasses}
+              value={pollutant}
+              onChange={(event) => onPollutantChange(event.target.value as Pollutant)}
+            >
+              {POLLUTANTS.map((p) => (
+                <option key={p} value={p}>
+                  {p} — {POLLUTANT_INFO[p].plainName}
+                </option>
+              ))}
+            </select>
+            <ChevronDown />
+          </div>
+        </label>
+        <span className="text-xs text-ink-soft">{POLLUTANT_INFO[pollutant].source}</span>
+      </div>
 
       <div className="flex flex-wrap items-center gap-1.5 border-t border-ink/10 pt-4">
-        <span className="rounded-sm bg-teal/10 px-2 py-0.5 text-xs font-medium capitalize text-teal">
+        <span
+          className="cursor-help rounded-sm bg-teal/10 px-2 py-0.5 text-xs font-medium capitalize text-teal"
+          title={STATION_TYPE_HINT[station.type]}
+        >
           {station.type}
         </span>
-        <span className="rounded-sm bg-ink/5 px-2 py-0.5 text-xs font-medium capitalize text-ink-soft">
+        <span
+          className="cursor-help rounded-sm bg-ink/5 px-2 py-0.5 text-xs font-medium capitalize text-ink-soft"
+          title={STATION_AREA_HINT[station.area] ?? station.area}
+        >
           {station.area}
         </span>
         <span className="ml-auto font-mono text-xs text-ink-soft">{station.eoi}</span>

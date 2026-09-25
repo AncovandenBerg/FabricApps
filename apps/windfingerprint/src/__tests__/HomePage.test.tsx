@@ -53,7 +53,7 @@ describe('HomePage (real exported data)', () => {
     vi.stubGlobal(
       'fetch',
       vi.fn(async (url: string) => {
-        if (url.includes('NL00448_NO2')) {
+        if (url.includes('NL00807_PM2.5')) {
           return new Response(null, { status: 404 });
         }
         return new Response(REAL_PAYLOAD, { status: 200 });
@@ -65,19 +65,17 @@ describe('HomePage (real exported data)', () => {
     vi.unstubAllGlobals();
   });
 
-  it('loads real data and renders the polar plot, CPF rose, and a working threshold slider', async () => {
+  it('loads real data by default and renders the polar plot, CPF rose, and a working threshold slider', async () => {
     render(
       <AuthProvider authService={stubAuthService}>
         <HomePage />
       </AuthProvider>
     );
 
-    // Station picker shows the real 20-station list, not demo fixtures.
-    expect(await screen.findByText('Rotterdam-Bentinckplein')).toBeInTheDocument();
-
-    // The default station (STATIONS[0], NL00448) has no NO2 export -- switch
-    // to NL00007 (Amsterdam-Einsteinweg), which the mock serves REAL_PAYLOAD for.
-    fireEvent.change(screen.getByLabelText('Station'), { target: { value: 'NL00007' } });
+    // Station picker shows the real 19-station list, not demo fixtures, and
+    // the default station (STATIONS[0], NL00007) already has data -- no one
+    // should land on an empty state on first load.
+    expect(await screen.findByText('Amsterdam-Einsteinweg')).toBeInTheDocument();
 
     // Real summary numbers from the exported payload (not demo/placeholder values).
     // Regex (not an exact string) because toLocaleString()'s grouping separator
@@ -85,21 +83,21 @@ describe('HomePage (real exported data)', () => {
     await waitFor(() => {
       expect(screen.getByText(/51.573/)).toBeInTheDocument(); // validHours
     });
-    // "57.3" appears in both the slider label and the "Defaults to..." helper text.
+    // "57.3" appears in both the slider label and the "We started it..." helper text.
     expect(screen.getAllByText(/57\.3/).length).toBeGreaterThan(0);
 
     const svgPaths = document.querySelectorAll('svg path[role="graphics-symbol"]');
     expect(svgPaths.length).toBeGreaterThan(0);
 
     // The map-overlay section (react-leaflet stubbed above) is wired in.
-    expect(screen.getByText(/Same CPF, over the real map/)).toBeInTheDocument();
+    expect(screen.getByText(/on the map/)).toBeInTheDocument();
 
     // Moving the slider recomputes CPF client-side (no network call).
     const fetchCallsBefore = (fetch as ReturnType<typeof vi.fn>).mock.calls.length;
     const slider = screen.getByRole('slider');
     fireEvent.change(slider, { target: { value: '20' } });
     await waitFor(() => {
-      expect(screen.getByText(/CPF threshold: 20\.0/)).toBeInTheDocument();
+      expect(screen.getByText(/means more than 20\.0/)).toBeInTheDocument();
     });
     expect((fetch as ReturnType<typeof vi.fn>).mock.calls.length).toBe(fetchCallsBefore);
   });
@@ -111,9 +109,9 @@ describe('HomePage (real exported data)', () => {
       </AuthProvider>
     );
 
-    fireEvent.change(screen.getByLabelText('Station'), { target: { value: 'NL00448' } });
-    fireEvent.change(screen.getByLabelText('Pollutant'), { target: { value: 'NO2' } });
+    fireEvent.change(screen.getByLabelText('Station'), { target: { value: 'NL00807' } });
+    fireEvent.change(screen.getByLabelText('Pollution type'), { target: { value: 'PM2.5' } });
 
-    expect(await screen.findByText(/No NO2 observations/)).toBeInTheDocument();
+    expect(await screen.findByText(/No fine soot particles \(PM2\.5\) readings/)).toBeInTheDocument();
   });
 });

@@ -73,12 +73,12 @@ export function buildCpfRoseSpec(
         field: 'cpf',
         type: 'quantitative',
         scale: { domain: [0, 0.5, 1], range: ['#eaf3f0', '#2b6e63', '#b0431a'] },
-        legend: showLegend ? { title: 'CPF', format: '.0%' } : null,
+        legend: showLegend ? { title: 'Chance of high pollution', format: '.0%' } : null,
       },
       tooltip: [
-        { field: 'sectorLabel', type: 'nominal', title: 'Sector' },
-        { field: 'cpf', type: 'quantitative', title: 'CPF', format: '.0%' },
-        { field: 'n', type: 'quantitative', title: 'Hours (n)' },
+        { field: 'sectorLabel', type: 'nominal', title: 'Direction' },
+        { field: 'cpf', type: 'quantitative', title: 'Chance of high pollution', format: '.0%' },
+        { field: 'n', type: 'quantitative', title: 'Hours of data' },
       ],
     },
   };

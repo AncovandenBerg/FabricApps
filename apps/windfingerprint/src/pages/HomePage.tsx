@@ -2,11 +2,13 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { CpfRose } from '@/components/fingerprint/CpfRose';
 import { CpfRoseMap } from '@/components/fingerprint/CpfRoseMap';
+import { ExplainerPanel } from '@/components/fingerprint/ExplainerPanel';
 import { FingerprintSummaryPanel } from '@/components/fingerprint/FingerprintSummaryPanel';
-import { InterpretationHelp } from '@/components/fingerprint/InterpretationHelp';
 import { PolarPlot } from '@/components/fingerprint/PolarPlot';
 import { StationPicker } from '@/components/fingerprint/StationPicker';
+import { TechnicalDocumentation } from '@/components/fingerprint/TechnicalDocumentation';
 import { useAuth } from '@/hooks/AuthContext';
+import { POLLUTANT_INFO } from '@/lib/windFingerprint/pollutants';
 import {
   computeCpf,
   loadFingerprintPayload,
@@ -86,11 +88,11 @@ export function HomePage() {
   return (
     <div className="min-h-screen bg-paper font-sans text-ink">
       <header className="border-b border-ink/10 bg-ink text-paper">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
           <div>
             <h1 className="font-display text-xl font-semibold tracking-tight">WindFingerprint</h1>
             <p className="mt-0.5 text-xs text-paper/55">
-              Source attribution for pan-European air quality
+              See which direction your air pollution is really coming from
             </p>
           </div>
           <button
@@ -103,93 +105,98 @@ export function HomePage() {
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-6xl grid-cols-1 gap-6 px-6 py-8 lg:grid-cols-[280px_1fr] lg:items-start">
-        <aside className="rounded-sm border border-ink/10 bg-panel p-5 lg:sticky lg:top-8">
-          <StationPicker
-            stations={STATIONS}
-            station={station}
-            onStationChange={setStation}
-            pollutant={pollutant}
-            onPollutantChange={setPollutant}
-          />
+      <div className="mx-auto max-w-7xl px-6 py-8">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr_300px] lg:items-start">
+          <aside className="rounded-sm border border-ink/10 bg-panel p-5 lg:sticky lg:top-8">
+            <StationPicker
+              stations={STATIONS}
+              station={station}
+              onStationChange={setStation}
+              pollutant={pollutant}
+              onPollutantChange={setPollutant}
+            />
 
-          {state.status === 'ready' && summary && (
-            <div className="mt-5">
-              <FingerprintSummaryPanel summary={summary} />
-            </div>
-          )}
-        </aside>
+            {state.status === 'ready' && summary && (
+              <div className="mt-5">
+                <FingerprintSummaryPanel summary={summary} />
+              </div>
+            )}
+          </aside>
 
-        <main className="min-w-0">
-          {state.status === 'loading' && (
-            <StatusPanel>Loading fingerprint for {station.name}…</StatusPanel>
-          )}
+          <main className="min-w-0">
+            {state.status === 'loading' && (
+              <StatusPanel>Loading data for {station.name}…</StatusPanel>
+            )}
 
-          {state.status === 'error' && (
-            <div className="rounded-sm border border-red-200 bg-red-50 p-8 text-sm text-red-800">
-              <p className="font-medium">Couldn&apos;t load the fingerprint.</p>
-              <p className="mt-1 text-red-700">{state.message}</p>
-            </div>
-          )}
+            {state.status === 'error' && (
+              <div className="rounded-sm border border-red-200 bg-red-50 p-8 text-sm text-red-800">
+                <p className="font-medium">Couldn&apos;t load the data for this station.</p>
+                <p className="mt-1 text-red-700">{state.message}</p>
+              </div>
+            )}
 
-          {state.status === 'empty' && (
-            <StatusPanel>
-              No {pollutant} observations for {station.name}.
-            </StatusPanel>
-          )}
+            {state.status === 'empty' && (
+              <StatusPanel>
+                No {POLLUTANT_INFO[pollutant].plainName.toLowerCase()} ({pollutant}) readings for{' '}
+                {station.name} yet. Try a different pollution type on the left.
+              </StatusPanel>
+            )}
 
-          {state.status === 'ready' && summary && threshold !== null && (
-            <div className="rounded-sm border border-ink/10 bg-panel p-5">
-              <label className="flex flex-col gap-3 text-sm">
-                <span className="font-mono text-ink">
-                  CPF threshold: {threshold.toFixed(1)} {summary.unit}
-                </span>
-                <input
-                  type="range"
-                  className="instrument-slider w-full"
-                  min={state.payload.histogram.edges[0]}
-                  max={state.payload.histogram.edges[state.payload.histogram.edges.length - 1]}
-                  step={0.1}
-                  value={threshold}
-                  onChange={(event) => setThreshold(Number(event.target.value))}
-                />
-                <span className="text-xs text-ink-soft">
-                  Defaults to the 90th percentile ({state.payload.defaultThreshold} {summary.unit}). CPF
-                  values below are a linear-interpolation approximation from a precomputed histogram, not
-                  a live recalculation over raw hours.
-                </span>
-              </label>
-            </div>
-          )}
+            {state.status === 'ready' && summary && threshold !== null && (
+              <div className="rounded-sm border border-ink/10 bg-panel p-5">
+                <label className="flex flex-col gap-3 text-sm">
+                  <span className="font-mono text-ink">
+                    &ldquo;High pollution&rdquo; means more than {threshold.toFixed(1)} {summary.unit}
+                  </span>
+                  <input
+                    type="range"
+                    className="instrument-slider w-full"
+                    min={state.payload.histogram.edges[0]}
+                    max={state.payload.histogram.edges[state.payload.histogram.edges.length - 1]}
+                    step={0.1}
+                    value={threshold}
+                    onChange={(event) => setThreshold(Number(event.target.value))}
+                  />
+                  <span className="text-xs text-ink-soft">
+                    Drag to try a different level &mdash; both charts redraw instantly. We started it
+                    just above 90% of all recorded hours here ({state.payload.defaultThreshold}{' '}
+                    {summary.unit}).
+                  </span>
+                </label>
+              </div>
+            )}
 
-          {state.status === 'ready' && summary && threshold !== null && (
-            <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-              <ChartPanel title="Bivariate polar plot">
-                <PolarPlot cells={grid} unit={summary.unit} />
-              </ChartPanel>
-              <ChartPanel title="Conditional probability function">
-                <CpfRose values={cpf} />
-              </ChartPanel>
-            </div>
-          )}
+            {state.status === 'ready' && summary && threshold !== null && (
+              <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+                <ChartPanel title="Pollution levels by wind direction & speed">
+                  <PolarPlot cells={grid} unit={summary.unit} />
+                </ChartPanel>
+                <ChartPanel title="Where the pollution comes from">
+                  <CpfRose values={cpf} />
+                </ChartPanel>
+              </div>
+            )}
 
-          {state.status === 'ready' && (
-            <div className="mt-6 rounded-sm border border-ink/10 bg-panel p-5">
-              <h2 className="font-display text-sm font-semibold text-ink">
-                Same CPF, over the real map
-              </h2>
-              <p className="mb-3 mt-1 text-xs text-ink-soft">
-                The rose above, redrawn over the streets around {station.name} — drag or scroll to look
-                for what actually sits in the direction it points to.
-              </p>
-              <CpfRoseMap station={station} values={cpf} />
-            </div>
-          )}
+            {state.status === 'ready' && (
+              <div className="mt-6 rounded-sm border border-ink/10 bg-panel p-5">
+                <h2 className="font-display text-sm font-semibold text-ink">
+                  Where the pollution comes from &mdash; on the map
+                </h2>
+                <p className="mb-3 mt-1 text-xs text-ink-soft">
+                  The same result as above, but drawn over the real streets around {station.name}. Drag
+                  or scroll to see what&apos;s actually out there in that direction.
+                </p>
+                <CpfRoseMap station={station} values={cpf} />
+              </div>
+            )}
+          </main>
 
-          <div className="mt-6">
-            <InterpretationHelp />
-          </div>
-        </main>
+          <ExplainerPanel pollutant={pollutant} />
+        </div>
+
+        <div className="mt-6">
+          <TechnicalDocumentation />
+        </div>
       </div>
     </div>
   );

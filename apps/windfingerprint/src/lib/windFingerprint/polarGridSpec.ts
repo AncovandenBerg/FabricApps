@@ -80,17 +80,17 @@ export function buildPolarGridSpec(
         field: 'meanConcentration',
         type: 'quantitative',
         scale: { range: ['#f1e7c9', '#8c3413'] },
-        legend: { title: `Mean ${options.unit}` },
+        legend: { title: `Average (${options.unit})` },
       },
       tooltip: [
         { field: 'speedBinLabel', type: 'nominal', title: 'Wind speed' },
         {
           field: 'meanConcentration',
           type: 'quantitative',
-          title: `Mean (${options.unit})`,
+          title: `Average pollution (${options.unit})`,
           format: '.1f',
         },
-        { field: 'n', type: 'quantitative', title: 'Hours (n)' },
+        { field: 'n', type: 'quantitative', title: 'Hours of data' },
       ],
     },
   };

@@ -45,10 +45,10 @@ export async function loadFingerprintPayload(
     return JSON.parse(text) as FingerprintPayload;
   } catch {
     // Some hosting setups answer a missing static file with a 200 HTML
-    // page (SPA/portal fallback) instead of a real 404 -- e.g. Rotterdam-
-    // Bentinckplein (NL00448) only has a PM2.5 export, so NO2/PM10 requests
-    // land here. Treat an unparsable body the same as "no export" rather
-    // than surfacing a confusing JSON.parse error.
+    // page (SPA/portal fallback) instead of a real 404 -- e.g. Hellendoorn-
+    // Luttenbergerweg (NL00807) has no PM2.5 export, so that request lands
+    // here. Treat an unparsable body the same as "no export" rather than
+    // surfacing a confusing JSON.parse error.
     return null;
   }
 }

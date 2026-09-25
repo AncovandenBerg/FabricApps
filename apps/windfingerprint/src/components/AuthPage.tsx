@@ -60,7 +60,7 @@ export function AuthPage() {
             WindFingerprint
           </h1>
           <p className="mt-2 text-sm text-paper/55">
-            Source attribution for pan-European air quality.
+            See which direction your air pollution is really coming from.
           </p>
         </div>
 

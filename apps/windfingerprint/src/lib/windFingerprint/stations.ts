@@ -8,13 +8,17 @@ export interface Station {
 }
 
 /**
- * The 20 real NL stations ingested by the bronze/silver/gold pipeline
+ * 19 of the 20 real NL stations ingested by the bronze/silver/gold pipeline
  * (nb_wind_bronze / nb_silver / nb_gold) -- curated 2026-09-17 from live EEA
  * metadata, not invented. Kept in sync by hand with the copies in those
  * notebooks (they don't share a module system with the frontend).
+ *
+ * Rotterdam-Bentinckplein (NL00448) is deliberately left out: it only has a
+ * PM2.5 export (see public/exports/), so as STATIONS[0] -- the app's default
+ * station, picked before a visitor touches anything -- it landed everyone on
+ * the empty state.
  */
 export const STATIONS: Station[] = [
-  { eoi: 'NL00448', name: 'Rotterdam-Bentinckplein', type: 'traffic', area: 'urban', lat: 51.9271, lon: 4.4613 },
   { eoi: 'NL00007', name: 'Amsterdam-Einsteinweg', type: 'traffic', area: 'urban', lat: 52.3813, lon: 4.8452 },
   { eoi: 'NL00636', name: 'Utrecht-Kardinaal de Jongweg', type: 'traffic', area: 'urban', lat: 52.1051, lon: 5.1244 },
   { eoi: 'NL00741', name: 'Nijmegen-Graafseweg', type: 'traffic', area: 'urban', lat: 51.8414, lon: 5.8578 },
