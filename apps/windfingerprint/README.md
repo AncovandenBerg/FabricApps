@@ -5,6 +5,10 @@
 
 ![WindFingerprint's HomePage for Hoek van Holland-Berghaven, NO2: a station picker and readout panel on the left, the bivariate polar plot and CPF rose side by side, and the CPF rose overlaid on a real OpenStreetMap view below, pointing east into the town from the station.](../../docs/img/windfingerprint.png)
 
+**Live showcase:** https://ancovandenberg.github.io/FabricApps/windfingerprint/ (static GitHub Pages
+build, no Fabric backend -- see [Showcase build](#showcase-build) below. The Fabric-hosted app itself
+isn't kept running.)
+
 ## What it does
 
 Air quality monitoring stations report *how much* pollution is in the air, but not *where it's coming
@@ -73,6 +77,20 @@ npx rayfin up --workspace "<your-workspace>"
 
 Set `services.functions.enabled: false` in `rayfin/rayfin.yml` first — Fabric doesn't yet support running
 Rayfin Functions in production (see "What I learned").
+
+## Showcase build
+
+The Fabric-hosted app requires Fabric SSO and isn't kept running, so there's a second, backend-less
+build for the public link above:
+
+```bash
+npm run deploy:pages
+```
+
+This builds with `vite build --mode pages` (env in `.env.pages`, no secrets) — swaps in a
+`StaticAuthService` instead of the real Fabric auth so no backend call ever happens, and publishes
+`dist/` to the `windfingerprint/` folder of the repo's `gh-pages` branch. Re-run it any time to refresh
+the demo with a newer build; nothing rebuilds automatically.
 
 ## What I learned
 
