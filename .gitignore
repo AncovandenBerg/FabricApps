@@ -12,6 +12,8 @@ node_modules/
 **/.env.fabric-*
 !**/.env.example
 !**/rayfin/.env.example
+# GitHub Pages showcase build config -- no secrets, committed on purpose.
+!**/.env.pages
 
 # Rayfin generated artefacts
 **/rayfin/.temp/

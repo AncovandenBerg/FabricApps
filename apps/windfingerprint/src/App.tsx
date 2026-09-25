@@ -29,7 +29,7 @@ function AuthGuard({
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
       {/* ensure all new routes require auth */}
       <Routes>
         <Route

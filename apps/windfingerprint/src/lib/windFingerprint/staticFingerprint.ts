@@ -33,12 +33,24 @@ export async function loadFingerprintPayload(
   stationEoi: string,
   pollutant: Pollutant
 ): Promise<FingerprintPayload | null> {
-  const resp = await fetch(`/exports/${stationEoi}_${pollutant}.json`);
+  // Base-relative, not root-absolute: the showcase build is served from a
+  // subpath (import.meta.env.BASE_URL), not domain root.
+  const resp = await fetch(`${import.meta.env.BASE_URL}exports/${stationEoi}_${pollutant}.json`);
   if (resp.status === 404) return null; // no export for this combination -- see nb_export_static's "skipped" list
   if (!resp.ok) {
     throw new Error(`Failed to load fingerprint data (HTTP ${resp.status})`);
   }
-  return (await resp.json()) as FingerprintPayload;
+  const text = await resp.text();
+  try {
+    return JSON.parse(text) as FingerprintPayload;
+  } catch {
+    // Some hosting setups answer a missing static file with a 200 HTML
+    // page (SPA/portal fallback) instead of a real 404 -- e.g. Rotterdam-
+    // Bentinckplein (NL00448) only has a PM2.5 export, so NO2/PM10 requests
+    // land here. Treat an unparsable body the same as "no export" rather
+    // than surfacing a confusing JSON.parse error.
+    return null;
+  }
 }
 
 export function toGrid(payload: FingerprintPayload): GridCell[] {

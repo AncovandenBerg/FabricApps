@@ -29,6 +29,10 @@ export default defineConfig(({ mode, command }) => {
   }
 
   return {
+    // Only set for the GitHub Pages showcase build (.env.pages), which is
+    // served from a subpath instead of domain root. Unset elsewhere, so the
+    // Fabric build's behavior (base '/') is unchanged.
+    base: env.VITE_BASE_PATH || '/',
     plugins: [react(), tailwindcss(), rayfinLocalDev()],
     resolve: {
       alias: {
