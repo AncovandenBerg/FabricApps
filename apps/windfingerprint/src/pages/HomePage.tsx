@@ -88,7 +88,7 @@ export function HomePage() {
   return (
     <div className="min-h-screen bg-paper font-sans text-ink">
       <header className="border-b border-ink/10 bg-ink text-paper">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
+        <div className="mx-auto flex max-w-[1600px] items-center justify-between px-6 py-5">
           <div>
             <h1 className="font-display text-xl font-semibold tracking-tight">WindFingerprint</h1>
             <p className="mt-0.5 text-xs text-paper/55">
@@ -105,7 +105,7 @@ export function HomePage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-7xl px-6 py-8">
+      <div className="mx-auto max-w-[1600px] px-6 py-8">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[260px_1fr_300px] lg:items-start">
           <aside className="rounded-sm border border-ink/10 bg-panel p-5 lg:sticky lg:top-8">
             <StationPicker
@@ -146,7 +146,7 @@ export function HomePage() {
               <div className="rounded-sm border border-ink/10 bg-panel p-5">
                 <label className="flex flex-col gap-3 text-sm">
                   <span className="font-mono text-ink">
-                    &ldquo;High pollution&rdquo; means more than {threshold.toFixed(1)} {summary.unit}
+                    "High pollution" means more than {threshold.toFixed(1)} {summary.unit}
                   </span>
                   <input
                     type="range"
@@ -158,16 +158,16 @@ export function HomePage() {
                     onChange={(event) => setThreshold(Number(event.target.value))}
                   />
                   <span className="text-xs text-ink-soft">
-                    Drag to try a different level &mdash; both charts redraw instantly. We started it
-                    just above 90% of all recorded hours here ({state.payload.defaultThreshold}{' '}
-                    {summary.unit}).
+                    Drag to try a different level. Both charts redraw instantly. We started it just
+                    above 90% of all recorded hours here ({state.payload.defaultThreshold} {summary.unit}
+                    ).
                   </span>
                 </label>
               </div>
             )}
 
             {state.status === 'ready' && summary && threshold !== null && (
-              <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div className="mt-6 grid grid-cols-1 gap-6 2xl:grid-cols-2">
                 <ChartPanel title="Pollution levels by wind direction & speed">
                   <PolarPlot cells={grid} unit={summary.unit} />
                 </ChartPanel>
@@ -179,9 +179,7 @@ export function HomePage() {
 
             {state.status === 'ready' && (
               <div className="mt-6 rounded-sm border border-ink/10 bg-panel p-5">
-                <h2 className="font-display text-sm font-semibold text-ink">
-                  Where the pollution comes from &mdash; on the map
-                </h2>
+                <h2 className="font-display text-sm font-semibold text-ink">On the map</h2>
                 <p className="mb-3 mt-1 text-xs text-ink-soft">
                   The same result as above, but drawn over the real streets around {station.name}. Drag
                   or scroll to see what&apos;s actually out there in that direction.

@@ -27,12 +27,12 @@ export function TechnicalDocumentation() {
           <p className="font-medium text-ink">Conditional probability function (CPF) rose</p>
           <p className="mt-2">
             For each sector, CPF is the share of hours from that direction where concentration exceeded
-            the threshold. The sectors reaching furthest out point at the source &mdash; this is the
-            sharper attribution tool of the two.
+            the threshold. The sectors reaching furthest out point at the source: this is the sharper
+            attribution tool of the two.
           </p>
           <p className="mt-2">
             CPF values are a linear-interpolation approximation from a precomputed histogram, not a live
-            recalculation over raw hours &mdash; moving the threshold slider is instant because of this.
+            recalculation over raw hours. That's why moving the threshold slider is instant.
           </p>
         </div>
       </div>

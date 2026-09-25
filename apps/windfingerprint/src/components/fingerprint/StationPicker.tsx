@@ -86,7 +86,7 @@ export function StationPicker({
             >
               {POLLUTANTS.map((p) => (
                 <option key={p} value={p}>
-                  {p} — {POLLUTANT_INFO[p].plainName}
+                  {p} - {POLLUTANT_INFO[p].plainName}
                 </option>
               ))}
             </select>

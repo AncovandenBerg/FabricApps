@@ -90,7 +90,7 @@ describe('HomePage (real exported data)', () => {
     expect(svgPaths.length).toBeGreaterThan(0);
 
     // The map-overlay section (react-leaflet stubbed above) is wired in.
-    expect(screen.getByText(/on the map/)).toBeInTheDocument();
+    expect(screen.getByText(/on the map/i)).toBeInTheDocument();
 
     // Moving the slider recomputes CPF client-side (no network call).
     const fetchCallsBefore = (fetch as ReturnType<typeof vi.fn>).mock.calls.length;

@@ -19,15 +19,15 @@ export function ExplainerPanel({ pollutant }: { pollutant: Pollutant }) {
       <div>
         <h2 className="font-display text-sm font-semibold text-ink">What am I looking at?</h2>
         <p className="mt-2">
-          You&rsquo;re looking at {info.plainName.toLowerCase()} ({pollutant}) &mdash; {info.source}.
-          Every chart below is centred on the monitoring station and split into slices like a compass,
-          one for each direction the wind can blow from.
+          You're looking at {info.plainName.toLowerCase()} ({pollutant}): {info.source}. Every chart
+          below is centred on the monitoring station and split into slices like a compass, one for each
+          direction the wind can blow from.
         </p>
       </div>
 
       <Section title="Left chart: how bad, and when">
         Darker, redder slices near the outer edge mean pollution was higher when the wind blew from that
-        direction at that speed. Grey slices just mean there isn&rsquo;t enough data yet to be sure.
+        direction at that speed. Grey slices just mean there isn't enough data yet to be sure.
       </Section>
 
       <Section title="Right chart: where it's coming from">
@@ -36,13 +36,12 @@ export function ExplainerPanel({ pollutant }: { pollutant: Pollutant }) {
       </Section>
 
       <Section title="The map below">
-        The same result, drawn over the real streets, so you can see what&rsquo;s actually sitting in
-        that direction &mdash; a road, a factory, a neighbour.
+        The same result, drawn over the real streets, so you can see what's actually sitting in that
+        direction: a road, a factory, a neighbour.
       </Section>
 
       <Section title="The slider">
-        Drag it to change what counts as &ldquo;high pollution&rdquo; &mdash; both charts redraw
-        instantly.
+        Drag it to change what counts as "high pollution." Both charts redraw instantly.
       </Section>
     </div>
   );
