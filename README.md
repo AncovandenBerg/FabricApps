@@ -16,7 +16,7 @@
 | --- | --- | --- | --- |
 | [**capacity-command**](apps/capacity-command) | A DP-700 operational simulator built with Rayfin on Fabric for the Fabric Apps community contest, Builder track. Its own telemetry pipeline is itself a DP-700 exercise. | Simulated, no external source | Live |
 | [**windfingerprint**](apps/windfingerprint) | Joins air quality measurements to wind direction so you can see where a station's pollution actually comes from. | EEA air quality + Open-Meteo wind | Live |
-| [**fabric-and-fabric-apps**](apps/fabric-and-fabric-apps) | A live-talk control room: the presenter drives stages from one device, the audience joins and votes from their phones via a QR code, and the projector mirrors it all by polling — no manual refresh anywhere. | None, live session/poll data only | Local only |
+| [**fabric-and-fabric-apps**](apps/fabric-and-fabric-apps) | A live-talk control room: the presenter drives stages from one device, the audience joins and votes from their phones via a QR code, and the projector mirrors it all by polling, no manual refresh anywhere. | None, live session/poll data only | Local only |
 
 The folder links appear in this table as each app lands, so an empty column here means an
 empty folder in the repo.
