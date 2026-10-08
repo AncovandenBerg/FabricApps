@@ -45,8 +45,7 @@ FabricApps/
 │   │   ├── package.json
 │   │   └── README.md           what it does, how to run it, what it taught me
 │   ├── capacity-command/       Rayfin project deployed to Fabric; see its own README
-│   ├── wake/
-│   └── half-life/
+│   ├── pinball/
 ├── docs/
 │   ├── setup.md                one-time tenant, capacity and CLI setup
 │   ├── migrate-existing-app.md how to bring an existing project in safely
