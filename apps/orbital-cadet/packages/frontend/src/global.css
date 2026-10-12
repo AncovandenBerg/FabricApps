@@ -1,0 +1,219 @@
+@import 'tailwindcss';
+
+@custom-variant dark (&:is(.dark *));
+
+/* Bridged tokens — kept in `@theme static` so the CSS vars are always
+   emitted, not tree-shaken when no Tailwind utility consumes them. */
+@theme static {
+  --color-brand: #000080;
+  --color-brand-foreground: #000080;
+  --color-hover: #dfdfdf;
+}
+
+@theme {
+  /* Windows 95 system palette.
+     This app commits to a single era-accurate look rather than offering a
+     light/dark pair: a 1995 desktop had exactly one appearance, and a dark
+     variant would read as a modern app wearing a costume. The `.dark` block
+     below therefore mirrors these values rather than inverting them, so a host
+     that forces dark mode cannot produce a half-modern hybrid. */
+
+  --color-desktop: #008080; /* the classic teal desktop */
+  --color-background: #008080;
+  --color-foreground: #000000;
+
+  --color-card: #c0c0c0; /* window face */
+  --color-card-foreground: #000000;
+
+  --color-popover: #c0c0c0;
+  --color-popover-foreground: #000000;
+
+  --color-primary: #000080; /* active title bar navy */
+  --color-primary-foreground: #ffffff;
+
+  --color-secondary: #c0c0c0;
+  --color-secondary-foreground: #000000;
+
+  --color-muted: #dfdfdf;
+  --color-muted-foreground: #404040;
+
+  --color-accent: #000080;
+  --color-accent-foreground: #ffffff;
+
+  --color-destructive: #800000;
+  --color-destructive-foreground: #ffffff;
+
+  --color-border: #808080;
+  --color-input: #ffffff;
+  --color-ring: #000000;
+
+  /* Bevel component colours */
+  --color-bevel-light: #ffffff;
+  --color-bevel-face: #dfdfdf;
+  --color-bevel-shadow: #808080;
+  --color-bevel-dark: #0a0a0a;
+
+  /* 95 had square corners. Everything resolves to zero on purpose. */
+  --radius-none: 0;
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
+  --radius-5xl: 0;
+  --radius-6xl: 0;
+  --radius-full: 0;
+  --radius: 0;
+
+  /* Spacing — 4px grid; use only these tokens, no interpolation. */
+  --spacing-none: 0;
+  --spacing-100-nudge: 2px;
+  --spacing-100: 4px;
+  --spacing-200-nudge: 6px;
+  --spacing-200: 8px;
+  --spacing-300-nudge: 10px;
+  --spacing-300: 12px;
+  --spacing-400: 16px;
+  --spacing-500: 20px;
+  --spacing-600: 24px;
+  --spacing-700: 28px;
+  --spacing-800: 32px;
+
+  /* Font Sizes — 100-based scale */
+  --text-100: 10px;
+  --text-200: 11px;
+  --text-300: 12px;
+  --text-400: 14px;
+  --text-500: 16px;
+  --text-600: 20px;
+  --text-hero-700: 24px;
+  --text-hero-800: 28px;
+  --text-hero-900: 36px;
+  --text-hero-1000: 48px;
+
+  /* Line Heights */
+  --leading-100: 12px;
+  --leading-200: 14px;
+  --leading-300: 16px;
+  --leading-400: 18px;
+  --leading-500: 20px;
+  --leading-600: 24px;
+  --leading-hero-700: 28px;
+  --leading-hero-800: 32px;
+  --leading-hero-900: 40px;
+  --leading-hero-1000: 52px;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 400;
+  --font-weight-semibold: 700;
+  --font-weight-bold: 700;
+
+  /* Tahoma is the closest widely available stand-in for MS Sans Serif and
+     ships on Windows; Silkscreen carries the bitmap score readout. */
+  --font-heading: Tahoma, 'MS Sans Serif', Geneva, Verdana, sans-serif;
+  --font-base: Tahoma, 'MS Sans Serif', Geneva, Verdana, sans-serif;
+  --font-monospace: 'Courier New', Courier, monospace;
+  --font-numeric: Silkscreen, 'Courier New', monospace;
+
+  --icon-size-100: 10px;
+  --icon-size-200: 12px;
+  --icon-size-300: 16px;
+  --icon-size-400: 20px;
+  --icon-size-500: 24px;
+  --icon-size-600: 28px;
+  --icon-size-700: 40px;
+}
+
+@utility icon-size-* {
+  width: --value(--icon-size-*);
+  height: --value(--icon-size-*);
+}
+
+/* The 95 bevel: a 2px border drawn as four inset shadows — outer highlight and
+   outer shadow, then the softer inner pair. Raised for window faces and
+   buttons, sunken for anything recessed into the surface. */
+@utility bevel-raised {
+  box-shadow:
+    inset -1px -1px 0 0 var(--color-bevel-dark),
+    inset 1px 1px 0 0 var(--color-bevel-light),
+    inset -2px -2px 0 0 var(--color-bevel-shadow),
+    inset 2px 2px 0 0 var(--color-bevel-face);
+}
+
+@utility bevel-sunken {
+  box-shadow:
+    inset 1px 1px 0 0 var(--color-bevel-dark),
+    inset -1px -1px 0 0 var(--color-bevel-light),
+    inset 2px 2px 0 0 var(--color-bevel-shadow),
+    inset -2px -2px 0 0 var(--color-bevel-face);
+}
+
+/* A single-step inset line, for list boxes and the status bar's cells. */
+@utility bevel-inset {
+  box-shadow:
+    inset 1px 1px 0 0 var(--color-bevel-shadow),
+    inset -1px -1px 0 0 var(--color-bevel-light);
+}
+
+@utility bevel-pressed {
+  box-shadow:
+    inset 1px 1px 0 0 var(--color-bevel-shadow),
+    inset 2px 2px 0 0 var(--color-bevel-dark);
+}
+
+/* Nearest-neighbour upscaling. This is what actually sells the era: the
+   playfield renders into a small buffer and is blown up with hard pixel
+   edges, instead of being drawn smooth at device resolution. */
+@utility pixelated {
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+}
+
+@layer base {
+  .dark {
+    /* Deliberately identical to the default palette — see the note above. */
+    --color-desktop: #008080;
+    --color-background: #008080;
+    --color-foreground: #000000;
+    --color-card: #c0c0c0;
+    --color-card-foreground: #000000;
+    --color-popover: #c0c0c0;
+    --color-popover-foreground: #000000;
+    --color-primary: #000080;
+    --color-primary-foreground: #ffffff;
+    --color-secondary: #c0c0c0;
+    --color-secondary-foreground: #000000;
+    --color-muted: #dfdfdf;
+    --color-muted-foreground: #404040;
+    --color-accent: #000080;
+    --color-accent-foreground: #ffffff;
+    --color-destructive: #800000;
+    --color-destructive-foreground: #ffffff;
+    --color-border: #808080;
+    --color-input: #ffffff;
+    --color-ring: #000000;
+  }
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-base);
+    -webkit-font-smoothing: none;
+  }
+
+  select,
+  input,
+  textarea,
+  button {
+    font-family: inherit;
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
