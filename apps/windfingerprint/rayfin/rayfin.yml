@@ -14,7 +14,7 @@ services:
     allowedRedirectUris:
       - http://localhost:5173
       - http://127.0.0.1:5173
-      - https://jazzy-dew-2f6bffac4d-westeurope.webapp.fabricapps.net
+      - https://<APP_NAME>.webapp.fabricapps.net
     fabric:
       enabled: true
   data:
