@@ -14,7 +14,7 @@ services:
       - http://localhost:5174
       - http://127.0.0.1:5174
       - http://127.0.0.1:5173
-      - https://fit-spark-d02d4d79fc-westeurope.webapp.fabricapps.net
+      - https://<APP_NAME>.webapp.fabricapps.net
   data:
     enabled: true
     path: packages/data
