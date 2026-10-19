@@ -1,4 +1,4 @@
-# Microsoft Fabric Apps — Research Notes (Sept 2026)
+# Microsoft Fabric Apps , Research Notes (Sept 2026)
 
 Research compiled for an internal talk (Fabric overview → Fabric Apps deep dive), where the talk itself is delivered via a live Fabric App.
 
@@ -45,14 +45,14 @@ The three source blogs originally supplied, plus official Microsoft Learn docs, 
 
 ## Regular authentication (for the signed-in/presenter side)
 
-- Two modes: **email/password** (local development only — doesn't work once deployed) and **Fabric SSO via Microsoft Entra ID** (production, for deployed apps — only works when the app is opened from/through Fabric).
+- **Fabric SSO via Microsoft Entra ID** (production, for deployed apps, only works when the app is opened from/through Fabric).
 - First sign-in via Fabric SSO auto-provisions the user; no separate sign-up step.
 - Configured in `rayfin/rayfin.yml` under `services.auth` (`enabled`, `allowedRedirectUris`, `fabric.enabled`, `password.enabled`). Deployment fails if `services.auth.enabled` is `false` — auth is mandatory for any deployment (though which *methods* are exposed to end users is controlled by role/UI design, not by disabling auth entirely).
 - The SDK exposes a `session` concept (`client.auth`) — authenticated state, `id`/`email`, custom claims, and change events — rather than raw tokens.
 
 ## Fit for a "disguised live presentation + audience polling" use case
 
-- A Fabric App's frontend is 100% custom code — no forced Power BI chrome — so it can be styled as anything (an interactive explainer, a dashboard, a product-tour site) with no visual tell that it's a "Fabric item."
+- A Fabric App's frontend is 100% custom code, so it can be styled as anything (an interactive explainer, a dashboard, a product-tour site).
 - Anonymous data access is the mechanism that makes a public, no-account audience-interaction flow possible at all, since the classic model requires Entra SSO for every visitor.
 - No push/subscription support means any "live updating" visual (e.g. a bar chart of poll results) has to poll the GraphQL API on an interval rather than subscribe to changes.
 
@@ -68,5 +68,3 @@ The three source blogs originally supplied, plus official Microsoft Learn docs, 
 8. [Microsoft Learn — Authentication for Fabric Apps](https://learn.microsoft.com/en-us/fabric/apps/authentication) *(official)*
 9. [Jihwan Kim / PowerBIMVP — Building My First Fabric App with the Rayfin CLI to Analyze a Semantic Model](https://powerbimvp.com/posts/fabric-app-rayfin-semantic-model-analyzer.html) *(independent hands-on build log)*
 10. [The New Stack — Microsoft Build 2026: Rayfin, Microsoft's Answer to the Gap Between Vibe Coding and Enterprise Production](https://thenewstack.io/microsoft-build-2026-rayfin-replit-vibe-coding/) *(editorial context on the launch)*
-
-Corroboration only (not individually quoted above): the Microsoft Fabric Community "Introducing Rayfin" and "Introducing anonymous data access for Fabric Apps (Preview)" announcement posts, and the `microsoft/rayfin` / `microsoft/awesome-rayfin` GitHub repositories.
