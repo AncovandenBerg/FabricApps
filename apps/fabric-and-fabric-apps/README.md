@@ -12,12 +12,12 @@
 
 Three routes, three audiences:
 
-- **`/display`** — the projected screen. Shows a QR code and a live headcount in the lobby, then mirrors
+- **`/display`**: the projected screen. Shows a QR code and a live headcount in the lobby, then mirrors
   whatever stage the presenter is on: a Fabric overview, a workload-by-workload zoom, the Fabric Apps
   pitch, a live poll with animated results.
-- **`/join`** — anonymous, opened by scanning that QR code. Attendees give a first name, then vote on
+- **`/join`**: anonymous, opened by scanning that QR code. Attendees give a first name, then vote on
   whichever poll the presenter has open and watch the results roll in.
-- **`/control`** — the presenter's second device, gated behind Fabric SSO. Steps through the 11 stages of
+- **`/control`**: the presenter's second device, gated behind Fabric SSO. Steps through the 11 stages of
   the talk, opens and closes polls, and drives the workload-zoom diagram.
 
 All three read the same singleton `Session` row, so opening or closing a poll on `/control` shows up on
@@ -116,7 +116,7 @@ Fabric SSO, so anyone signing in needs to match an address in `PRESENTER_EMAILS`
 - Anonymous visitors can also *read* `PollResponse` rows (not just create them) — accepted because the
   data is a first name and a multiple-choice pick, not because it can't be locked down further. Don't
   reuse this entity shape for anything more sensitive without revisiting that decision.
-- One global `Session` row — this runs one talk at a time, not concurrent sessions.
+- One global `Session` row, this runs one talk at a time, not concurrent sessions.
 - The stage content and poll questions (`src/content/`, `src/components/display/*Scene.tsx`,
   `PLACEHOLDER_POLLS` in `src/routes/Control.tsx`) are this specific talk's material, not a generic
   "author your own deck" template. Repurposing this for a different talk means rewriting those, not
