@@ -26,10 +26,7 @@ services:
     buildCommand: npm run build:fabric
     indexDocument: index.html
   functions:
-    enabled: false # Local dev/testing only -- Fabric doesn't support deploying Functions to
-                  # production yet ("Functions are not supported yet" 400 from rayfin up,
-                  # confirmed 2026-09-17). Flip to true locally for functions dev; always
-                  # false before any `rayfin up*` until Fabric ships support.
+    enabled: true
     buildCommand: npm run build
   storage:
     enabled: false
