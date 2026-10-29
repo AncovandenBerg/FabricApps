@@ -75,13 +75,9 @@ charts show real data immediately.
 npx rayfin up --workspace "<your-workspace>"
 ```
 
-Set `services.functions.enabled: false` in `rayfin/rayfin.yml` first — Fabric doesn't yet support running
-Rayfin Functions in production (see "What I learned").
-
-## Showcase build
-
-The Fabric-hosted app requires Fabric SSO and isn't kept running, so there's a second, backend-less
-build for the public link above:
+`rayfin up` also builds and deploys the Rayfin Functions in `rayfin/functions/`
+(`services.functions.enabled: true` in `rayfin/rayfin.yml`). Fabric used to reject this with a 400 (see
+"What I learned"); it is supported now.
 
 ```bash
 npm run deploy:pages
